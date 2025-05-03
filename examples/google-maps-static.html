@@ -49,7 +49,7 @@
     }
     </style>
 
-    <script src="//cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
     <h1>Google Maps static and html2canvas</h1>
@@ -57,13 +57,13 @@
     <p>Tested on Chrome and Firefox</p>
 
     <p class="note">
-        <strong>Note:</strong> for use this example you needs replace <code>YOUR_API_KEY</code> in <code>&lt;img&gt;</code> by your "api key" from "google dev"</strong>, for obtain a "api key" access: <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank">https://developers.google.com/maps/documentation/javascript/get-api-key</a>
+        <strong>Note:</strong> for use this example you needs replace <code>[YOUR_API_KEY]</code> in <code>&lt;img&gt;</code> by your "api key" from "google dev"</strong>, for obtain a "api key" access: <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank">https://developers.google.com/maps/documentation/javascript/get-api-key</a>
     </p>
 
     <div id="container">
         <h2>Maps example:</h2>
         <div id="static_map">
-            <img src="https://maps.googleapis.com/maps/api/staticmap?center=Brooklyn+Bridge,New+York,NY&amp;zoom=13&amp;size=600x300&amp;maptype=roadmap&amp;markers=color:blue%7Clabel:S%7C40.702147,-74.015794&ampmarkers=color:green%7Clabel:G%7C40.711614,-74.012318&amp;markers=color:red%7Clabel:C%7C40.718217,-73.998284&amp;key=YOUR_API_KEY">
+            <img alt="Maps " src="https://maps.googleapis.com/maps/api/staticmap?center=40.767665,-73.978633&amp;zoom=12&amp;size=600x300&amp;maptype=roadmap&amp;key=[YOUR_API_KEY]">
         </div>
         <div>
             <button id="save1">Save #map_canvas</button>
