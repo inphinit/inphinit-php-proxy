@@ -23,7 +23,7 @@
 </head>
 <body>
     <div id="container">
-        <h1>html2canvas 1.x with PHP proxy</h1>
+        <h1>html2canvas with PHP proxy</h1>
         <p>
             <b>Bring Attention</b>, <i>Idiomatic Text</i>, <u>Unarticulated Annotation</u>, <s>Strikethrough</s>
         </p>
@@ -43,7 +43,7 @@
     window.onload = function () {
         html2canvas(document.getElementById('container'), {
             logging: true, //Enable log (use Web Console for get Errors and Warnings)
-            proxy: '../html2canvasproxy.php'
+            proxy: '../proxy.php'
         }).then((canvas) => {
             canvas.toBlob((blob) => {
                 const img = new Image;

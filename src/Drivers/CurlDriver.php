@@ -1,0 +1,109 @@
+<?php
+/**
+ * Inphinit
+ *
+ * Copyright (c) 2025 Guilherme Nascimento
+ *
+ * Released under the MIT license
+ */
+
+namespace Inphinit\Proxy\Drivers;
+
+use Inphinit\Proxy\Proxy;
+
+class CurlDriver
+{
+    private $proxy;
+    private $lastUpdate = 0;
+    private $timeout = 30;
+    private $handle;
+
+    /**
+     * Create instace
+     *
+     * @param \Inphinit\Proxy\Proxy $proxy
+     * @return void
+     */
+    public function __construct(Proxy $proxy)
+    {
+        $this->proxy = $proxy;
+    }
+
+    /**
+     * Check driver support
+     *
+     * @return bool
+     */
+    public function support()
+    {
+        return true;
+    }
+
+    /**
+     * Execute download
+     *
+     * @param string $url
+     * @param int    $httpStatus
+     * @param string $contentType
+     * @param int    $errorCode
+     * @param string $errorMessage
+     * @return bool
+     */
+    public function exec($url, &$httpStatus, &$contentType, &$errorCode, &$errorMessage)
+    {
+        $update = $this->proxy->getOptions('update');
+
+        if ($this->handle === null || $this->lastUpdate < $update) {
+            $this->lastUpdate = $update;
+
+            $this->handle = curl_init();
+
+            $ch = $this->handle;
+            $timeout = $this->proxy->getOptions('timeout');
+
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout ? $timeout : $this->timeout);
+            curl_setopt($ch, CURLOPT_MAXREDIRS, $this->proxy->getOptions('maxRedirs'));
+
+            $options = array(
+                CURLOPT_HEADER => false,
+                CURLOPT_RETURNTRANSFER => false,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS => $this->proxy->getOptions('maxRedirs')
+            );
+
+            $extra = $this->proxy->getOptions('curl');
+
+            if ($extra) {
+                $options += $extra;
+            }
+
+            curl_setopt_array($ch, $options);
+
+            $temp = $this->proxy->getTemporary();
+
+            if (defined('CURLOPT_WRITEFUNCTION')) {
+                curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$temp) {
+                    return fwrite($temp, $data);
+                });
+            } else {
+                curl_setopt($ch, CURLOPT_FILE, $temp);
+            }
+        } else {
+            $ch = $this->handle;
+        }
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+
+        curl_exec($ch);
+
+        $code = curl_errno($ch);
+
+        if ($code !== 0) {
+            $errorCode = $code;
+            $errorMessage = 'cURL: ' . curl_error($ch);
+        } else {
+            $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        }
+    }
+}

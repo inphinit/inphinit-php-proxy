@@ -1,0 +1,15 @@
+{
+    "name": "inphinit/proxy",
+    "description": "Lib for create web proxy with CORS",
+    "keywords": [ "proxy", "cors", "html2canvas" ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Guilherme Nascimento",
+            "email": "brcontainer@yahoo.com.br"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    }
+}
