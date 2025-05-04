@@ -2,7 +2,7 @@
 /*
  * html2canvas-php-proxy 1.2.0
  *
- * Copyright (c) 2025 Guilherme Nascimento (brcontainer@yahoo.com.br)
+ * Copyright (c) 2025 Guilherme Nascimento
  *
  * Released under the MIT license
  */
