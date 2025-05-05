@@ -36,7 +36,7 @@ class CurlDriver
      */
     public function support()
     {
-        return true;
+        return function_exists('curl_init');
     }
 
     /**

@@ -122,6 +122,10 @@ class StreamDriver
             if ($timedOut) {
                 $this->proxy->resetTemporary();
             }
+        } else {
+            $err = error_get_last();
+            $errorCode = $err['type'];
+            $errorMessage = $err['message'];
         }
     }
 }
