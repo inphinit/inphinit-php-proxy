@@ -46,3 +46,4 @@ Temporary Items
 .phpintel/
 .idea/
 .vscode/
+cache/*

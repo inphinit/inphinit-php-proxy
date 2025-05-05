@@ -250,8 +250,12 @@ class Proxy
 
         $this->httpCache();
 
-        while(feof($this->temporary) === false) {
-            echo fgets($this->temporary, 4096);
+        $handle = $this->temporary;
+
+        rewind($handle);
+
+        while (feof($handle) === false) {
+            echo fgets($handle, 4096);
         }
     }
 
@@ -286,6 +290,8 @@ class Proxy
             echo 'data:' . $this->contentType . ';base64,';
 
             $handle = $this->temporary;
+
+            rewind($handle);
 
             while (feof($handle) === false) {
                 $raw = fread($handle, 8151);

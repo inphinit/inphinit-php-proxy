@@ -78,7 +78,7 @@ class StreamDriver
             $this->context = stream_context_create($options);
         }
 
-        $handle = fopen($url, 'r', false, $this->context);
+        $handle = fopen($url, 'rb', false, $this->context);
 
         if ($handle) {
             $temp = $this->proxy->getTemporary();
@@ -86,33 +86,34 @@ class StreamDriver
             $timedOut = false;
             $start = microtime(true);
 
-            $first = true;
-            $body = false;
+            $meta_data = stream_get_meta_data($handle);
 
-            while (feof($handle) === false) {
-                if ($timeout < (microtime(true) - $start)) {
-                    $timedOut = true;
-                    $errorCode = 0;
-                    $errorMessage = 'Connection timed out';
-                    break;
-                }
-
-                $content = fgets($handle, 4096);
-
-                if ($first) {
-                    $first = false;
-
-                    if (preg_match('#^HTTP/1\.\d\s+(\d{3})\s+#', $content, $match)) {
-                        $httpStatus = $match[1];
+            foreach ($meta_data['wrapper_data'] as $index => $header) {
+                if ($index === 0) {
+                    if (preg_match('#HTTP/\d+\.\d+\s+(\d+)#', $header, $match)) {
+                        $httpStatus = (int) $match;
                     } else {
+                        $httpStatus = 0;
+                        $errorCode = 0;
+                        $errorMessage = 'Invalid response';
                         break;
                     }
-                } elseif ($body) {
+                } elseif (stripos($header, 'content-type:') === 0) {
+                    $contentType = substr($header, 13);
+                }
+            }
+
+            if ($httpStatus !== 0) {
+                while (feof($handle) === false) {
+                    if ($timeout < (microtime(true) - $start)) {
+                        $timedOut = true;
+                        $errorCode = 0;
+                        $errorMessage = 'Connection timed out';
+                        break;
+                    }
+
+                    $content = fgets($handle, 4096);
                     fwrite($temp, $content);
-                } elseif (trim($content) === '') {
-                    $body = true;
-                } elseif (stripos($content, 'content-type:') === 0) {
-                    $contentType = trim($content);
                 }
             }
 
