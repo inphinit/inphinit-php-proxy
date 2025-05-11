@@ -96,7 +96,7 @@ Method | Description
 `setResponseCacheTime(int $seconds): void` | Enable or disable cache for Proxy::respose() or Proxy::jsonp()
 `response(): void` | Dump response to output
 `jsonp(string $callback): void` | Output JSONP callback with URL or data URI content
-`getContents(int $length = -1, int $offset = -1): string` | If last download was successful, contents will be returned
+`getContents([int $length[, int $offset]]): string` | If last download was successful, contents will be returned
 `getContentType(): string` | If last download was successful, content-type will be returned
 `getHttpStatus(): int` | If last download was successful, HTTP status will be returned
 `getLastErrorCode(): int` | If last download was failed, error code will be returned
