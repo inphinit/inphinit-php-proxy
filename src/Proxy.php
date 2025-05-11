@@ -21,8 +21,9 @@ class Proxy
     ];
     private $driver;
     private $drivers = [];
-    private $allowedUrls = ['*'];
-    private $allowedTypes = [
+    private $allowUrls = [];
+    private $allowUrlsRegEx;
+    private $allowTypes = [
         'image/apng' => true,
         'image/png' => true,
         'image/avif' => true,
@@ -48,7 +49,18 @@ class Proxy
     }
 
     /**
-     * Setup generic options
+     * Set drivers used to download the resource
+     *
+     * @param array $drivers Set drivers
+     * @return void
+     */
+    public function setDrivers(array $drivers)
+    {
+        $this->drivers = $drivers;
+    }
+
+    /**
+     * Set generic options
      *
      * @param string $key
      * @param mixed $value
@@ -85,31 +97,15 @@ class Proxy
     }
 
     /**
-     * Get or redefine allowed URLs
+     * Set allowed URLs
      *
-     * @param array $urls Optional. Redefine allowed URLs
-     * @return array      Return current allowed URLs
-     */
-    public function urls(array $urls = [])
-    {
-        if (empty($urls)) {
-            return $this->allowedUrls;
-        }
-
-        $current = $this->allowedUrls;
-        $this->allowedUrls = $urls;
-        return $current;
-    }
-
-    /**
-     * Set drivers used for download resource
-     *
-     * @param array $drivers Set drivers
+     * @param array $urls
      * @return void
      */
-    public function setDrivers(array $drivers)
+    public function setAllowUrls(array $urls)
     {
-        $this->drivers = $drivers;
+        $this->allowUrls = $urls;
+        $this->allowUrlsRegEx = null;
     }
 
     /**
@@ -119,9 +115,9 @@ class Proxy
      * @param string $binary
      * @return void
      */
-    public function addAllowedType($type, $binary)
+    public function addAllowType($type, $binary)
     {
-        $this->allowedTypes[$type] = $binary;
+        $this->allowTypes[$type] = $binary;
     }
 
     /**
@@ -130,9 +126,9 @@ class Proxy
      * @param string $type
      * @return void
      */
-    public function removeAllowedType($type)
+    public function removeAllowType($type)
     {
-        unset($this->allowedTypes[$type]);
+        unset($this->allowTypes[$type]);
     }
 
     /**
@@ -222,7 +218,7 @@ class Proxy
             $contentType = trim($contentType);
         }
 
-        if (array_key_exists($contentType, $this->allowedTypes) === false) {
+        if (array_key_exists($contentType, $this->allowTypes) === false) {
             $this->raise('Not allowed Content-type: ' . $contentType);
         }
 
@@ -305,7 +301,7 @@ class Proxy
             list($contentType, $extra) = $extract;
         }
 
-        $binary = $this->allowedTypes[$contentType];
+        $binary = $this->allowTypes[$contentType];
 
         if ($binary) {
             $contentType .= ';base64';
@@ -433,17 +429,21 @@ class Proxy
 
     private function validateUrl($url)
     {
-        $alloweds = $this->allowedUrls;
+        $urlList = $this->allowUrls;
 
-        if (in_array('*', $alloweds) === false) {
-            $re = implode('|', $alloweds);
-            $re = preg_quote($re, '#');
-            $re = strtr($re, array(
-                '\\*' => '\\w+',
-                '\\|' => '|'
-            ));
+        if ($urlList) {
+            if ($this->allowUrlsRegEx === null) {
+                $regex = implode('|', $urlList);
+                $regex = preg_quote($regex, '#');
+                $regex = strtr($regex, array(
+                    '\\*' => '\\w+',
+                    '\\|' => '|'
+                ));
 
-            if (!preg_match('#^(' . $re . ')#', $url)) {
+                $this->allowUrlsRegEx = '#^(' . $regex . ')#';
+            }
+
+            if (!preg_match($this->allowUrlsRegEx, $url)) {
                 return false;
             }
         }

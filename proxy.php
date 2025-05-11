@@ -18,15 +18,20 @@ require 'src/Drivers/StreamDriver.php';
 $proxy = new Proxy();
 
 // Set allowed URLs
-// $proxy->urls([ 'https://*.domain.io/', 'https://cdn.foobar.io/' ]);
+/*
+$proxy->setAllowUrls([
+    'https://*.domain.io/',
+    'https://cdn.foobar.io/'
+]);
+*/
 
 // Set allowed content-types
-// $proxy->addAllowedType('image/ico', true);
+// $proxy->addAllowType('image/ico', true);
 
-// Extra configs for CURL
+// Extra configs for CurlDriver
 // $proxy->setOptions('curl', [ CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_3 ]);
 
-// Extra configs for stream, see details in: https://www.php.net/manual/en/context.php
+// Extra configs for StreamDriver, see details in: https://www.php.net/manual/en/context.php
 /*
 $proxy->setOptions('stream', [
     'http' => [

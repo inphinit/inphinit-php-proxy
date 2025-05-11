@@ -84,16 +84,16 @@ html2canvas(document.getElementById('container'), {
 
 Method | Description
 --- | ---
-`setOptions(string $key, mixed $value): void` | Setup generic options
+`setDrivers(array $drivers): void` | Set drivers used to download the resource
+`setOptions(string $key, mixed $value): void` | Set generic options
 `getOptions([string $key]): mixed` | Get generic options
-`urls([array $urls]): array` | Get or redefine allowed URLs
-`setDrivers(array $drivers): void` | Sets drivers used for download resource
-`addAllowedType(string $type, bool $binary): void` | Add Content-Type to the allowed list
-`removeAllowedType(string $type): void` | Remove content-type from the allowed list
+`setAllowUrls(array $urls): void` | Set allowed URLs
+`addAllowType(string $type, bool $binary): void` | Add content-type to the allowed list
+`removeAllowType(string $type): void` | Remove content-type from the allowed list
 `setTemporary(string $path): void` | Sets temporary handle path, eg.: `/mnt/storage/`, `php://temp`, `php://memory`
 `getTemporary(): resource` | Get temporary stream
 `download(string $url[, bool $ignoreDownloadError]): void` | Perform download
-`setResponseCacheTime(int $seconds): void` | Enable or disable cache for Proxy::respose() or Proxy::jsonp()
+`setResponseCacheTime(int $seconds): void` | Enable or disable cache for `Proxy::respose()` or `Proxy::jsonp()`
 `response(): void` | Dump response to output
 `jsonp(string $callback): void` | Output JSONP callback with URL or data URI content
 `getContents([int $length[, int $offset]]): string` | If last download was successful, contents will be returned
@@ -156,7 +156,7 @@ $proxy->setOptions('stream', [
 ]);
 ```
 
-## Allowed Content-Type
+## Allow Content-Type
 
 When executing the download() method a content-type validation will be performed, by default the following Content-Types are allowed:
 
@@ -174,16 +174,16 @@ Content-Type | `Proxy::jsonp()`
 You can define another allowed content-type, example:
 
 ```php
-$proxy->addAllowedType('image/x-icon', true);
-$proxy->addAllowedType('image/vnd.microsoft.icon', true);
+$proxy->addAllowType('image/x-icon', true);
+$proxy->addAllowType('image/vnd.microsoft.icon', true);
 ```
 
 Second parameter of the method specifies whether the `Proxy::jsonp()` should use URL encoding or Base64 encoding in the data URI scheme.
 
-To remove an allowed Content-Type use the `Proxy::removeAllowedType()` method, example:
+To remove an allowed Content-Type use the `Proxy::removeAllowType()` method, example:
 
 ```php
-$proxy->removeAllowedType('image/apng');
+$proxy->removeAllowType('image/apng');
 ```
 
 ## How to use
