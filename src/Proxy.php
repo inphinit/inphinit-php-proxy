@@ -14,7 +14,6 @@ class Proxy
     const DEFAULT_MAX_REDIRS = 5;
     const DEFAULT_TIMEOUT = 30;
 
-    private $public;
     private $temporary;
     private $core = false;
     private $options = [
@@ -39,9 +38,6 @@ class Proxy
     private $errorCode;
     private $errorMessage;
     private $hasResponse = false;
-
-    private $publicStorage;
-    private $publicUrl;
     private $responseCacheTime = 60;
 
     public function __construct()
@@ -143,6 +139,8 @@ class Proxy
      * Set temporary handle path, eg.: /mnt/storage/, php://temp, php://memory
      *
      * @param string $path Set path
+     * @throws \Inphinit\Exception
+     * @throws \Exception
      * @return void
      */
     public function setTemporary($path)
@@ -156,7 +154,13 @@ class Proxy
             $path = tempnam($path, '~' . mt_rand(0, 99));
         }
 
-        $this->temporary = fopen($path, 'rb+');
+        $temp = fopen($path, 'rb+');
+
+        if (!$temp) {
+            $this->raise('Failed to open: ' . $path);
+        }
+
+        $this->temporary = $temp;
     }
 
     /**
@@ -167,19 +171,6 @@ class Proxy
     public function getTemporary()
     {
         return $this->temporary;
-    }
-
-    /**
-     * Set public storage and public URL for use with JSONP
-     *
-     * @param string $storage Set public dir storage
-     * @param string $url     Set URL public path, eg.: `https://foo.io/public/{file}`
-     * @return void
-     */
-    public function setPublic($storage, $url)
-    {
-        $this->publicStorage = $storage;
-        $this->publicUrl = $url;
     }
 
     /**
@@ -231,14 +222,18 @@ class Proxy
             $contentType = trim($contentType);
         }
 
-        if (array_key_exists($contentType, $this->allowedTypes)) {
+        if (array_key_exists($contentType, $this->allowedTypes) === false) {
             $this->raise('Not allowed Content-type: ' . $contentType);
         }
 
         $this->contentType = $contentType;
         $this->hasResponse = $this->errorCode === null;
 
-        if ($ignoreDownloadError !== true && $this->hasResponse) {
+        if ($this->errorCode !== null && $this->errorMessage === null) {
+            $this->errorMessage = 'Unknown';
+        }
+
+        if ($ignoreDownloadError !== true && !$this->hasResponse) {
             $this->raise($this->errorMessage, $this->errorCode);
         }
     }
@@ -288,12 +283,11 @@ class Proxy
      * Output JSONP callback with URL or data URI content
      *
      * @param string $callback Set callback
-     * @param string $public   Set public URL
      * @throws \Inphinit\Exception
      * @throws \Exception
      * @return void
      */
-    public function jsonp($callback, $public = false)
+    public function jsonp($callback)
     {
         if ($this->hasResponse === false) {
             $this->raise('No downloads yet');
@@ -303,47 +297,46 @@ class Proxy
 
         $this->httpCache();
 
-        if ($public) {
-            $url = $this->temporaryToPublic();
-            echo $callback, '(', $url, ');';
-        } else {
-            $crlf = "\r\n";
+        $contentType = $this->contentType;
+        $extra = null;
+        $extract = explode(';', $this->contentType, 2);
 
-            $contentType = $this->contentType;
-            $extra = null;
-            $extract = explode(';', $this->contentType, 2);
+        if (isset($extract[1])) {
+            list($contentType, $extra) = $extract;
+        }
 
-            if (isset($extract[1])) {
-                list($contentType, $extra) = $extract;
-            }
+        $binary = $this->allowedTypes[$contentType];
 
-            $binary = $this->allowedTypes[$contentType];
+        if ($binary) {
+            $contentType .= ';base64';
+        } elseif ($extra) {
+            $contentType .= ';' . $extra;
+        }
 
-            if ($binary) {
-                $contentType .= ';base64';
-            } elseif ($extra) {
-                $contentType .= ';' . $extra;
-            }
+        echo $callback, '("';
+        echo 'data:' . $contentType . ',';
 
-            echo $callback, '("';
-            echo 'data:' . $contentType . ',';
+        $handle = $this->temporary;
 
-            $handle = $this->temporary;
+        rewind($handle);
 
-            rewind($handle);
+        if ($binary) {
+            $crlf = '%0D%0A';
 
             while (feof($handle) === false) {
-                $raw = fgets($handle, 4096);
-
-                if ($binary) {
-                    echo base64_encode($raw);
-                } else {
-                    echo rawurlencode($raw);
-                }
+                $raw = fread($handle, 8151);
+                $encoded = base64_encode($raw);
+                $encoded = chunk_split($encoded, 76, $crlf);
+                echo $encoded;
             }
-
-            echo '");';
+        } else {
+            while (feof($handle) === false) {
+                $raw = fgets($handle, 4096);
+                echo rawurlencode($raw);
+            }
         }
+
+        echo '");';
     }
 
     /**
@@ -458,10 +451,6 @@ class Proxy
         return true;
     }
 
-    private function temporaryToPublic()
-    {
-    }
-
     private function raise($message, $code = 0)
     {
         $this->reset();
@@ -476,8 +465,15 @@ class Proxy
     public function __destruct()
     {
         if ($this->temporary) {
+            $meta_data = stream_get_meta_data($this->temporary);
+
             fclose($this->temporary);
+
             $this->temporary = null;
+
+            if (strpos($meta_data['uri'], 'php://') !== 0) {
+                unlink($meta_data['uri']);
+            }
         }
 
         $this->driver = null;

@@ -62,10 +62,10 @@ $proxy->setDrivers([
 ]);
 
 // Set temporary location
-// $proxy->setTemporary('php://temp');
+$proxy->setTemporary('php://temp');
 
 // Use specific directory
-$proxy->setTemporary(__DIR__ . '/cache');
+// $proxy->setTemporary(__DIR__ . '/cache');
 
 try {
     // Execute download

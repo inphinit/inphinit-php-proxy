@@ -1,10 +1,8 @@
 ## About Inphinit Proxy
 
-> **NOTE:** In development
+Until version 1.x, this project primarily served as a proxy solution for the *html2canvas* library. Version 2.0 marked a significant expansion, introducing extensive configuration and adaptation options that enable its use for a wide variety of needs and objectives.
 
-Until version 1.x this project focused on understanding the use of proxy for the *html2canvas* library, from version 2.0 onwards the use of this project allows many more configurations and adaptations for varied needs, being able to be used for different objectives.
-
-Despite being part of Inphinit, this project works completely independently, so you can use it with any PHP framework or even without frameworks. Although the project is stand-alone, you can adopt the Inphinit framework for new projects. It is a lightweight framework that can execute many requests per second, surpassing many other frameworks, see: https://inphinit.github.io
+Although developed as part of the Inphinit framework, the project operates completely independently. This means you can readily use it with any PHP framework or in a stand-alone application. While the project is modular, consider adopting the Inphinit framework itself for your new projects. For more details: https://inphinit.github.io
 
 ## Proxies for other scripting languages
 
@@ -46,7 +44,7 @@ $proxy->setDrivers([
 $proxy->setTemporary('php://temp');
 
 // Execute download
-$proxy->download($url);
+$proxy->download($_GET['url']);
 
 // Display raw output
 $proxy->response();
@@ -82,43 +80,6 @@ html2canvas(document.getElementById('container'), {
 });
 ```
 
-## Common issues and solutions
-
-When adding an image that belongs to another domain in `<canvas>` and after that try to export the canvas
-for a new image, a security error occurs (actually occurs is a security lock), which can return the error:
-
-> SecurityError: DOM Exception 18
->
-> Error: An attempt was made to break through the security policy of the user agent.
-
-If using Google Maps (or google maps static) you can get this error in console:
-
-> Google Maps API error: MissingKeyMapError
-
-You need get a API Key in: https://developers.google.com/maps/documentation/javascript/get-api-key
-
-If you get this error:
-
-> Access to Image at 'file:///...' from origin 'null' has been blocked by CORS policy: Invalid response. Origin 'null' is therefore not allowed access.
-
-Means that you are not using an HTTP server, html2canvas does not work over the `file:///` protocol, use Apache, Nginx or IIS with PHP for work.
-
-## Debuging with Web Console from DevTools
-
-If you have any issue is recommend to analyze the log with the Web Console tab and requests with Network tab from your browser, see documentations:
-
-* Firefox: https://firefox-source-docs.mozilla.org/devtools-user/
-* Chrome: https://developer.chrome.com/docs/devtools
-* Microsoft Edge: https://learn.microsoft.com/pt-br/microsoft-edge/devtools-guide-chromium/landing/
-
-An alternative is to debug issues by accessing the link directly:
-
-`http://[DOMAIN]/[PATH]/proxy?url=http%3A%2F%2Fmaps.googleapis.com%2Fmaps%2Fapi%2Fstaticmap%3Fcenter%3D40.714728%2C-73.998672%26zoom%3D12%26size%3D800x600%26maptype%3Droadmap%26sensor%3Dfalse%261&callback=html2canvas_0`
-
-Replace `[DOMAIN]` by your domain (eg. 127.0.0.1) and replace `[PATH]` by your project folder (eg.: `project-1/test`), something like:
-
-`http://localhost/project-1/test/proxy?url=http%3A%2F%2Fmaps.googleapis.com%2Fmaps%2Fapi%2Fstaticmap%3Fcenter%3D40.714728%2C-73.998672%26zoom%3D12%26size%3D800x600%26maptype%3Droadmap%26sensor%3Dfalse%261&callback=html2canvas_0`
-
 ## Setup proxy
 
 Method | Description
@@ -131,11 +92,10 @@ Method | Description
 `removeAllowedType(string $type): void` | Remove content-type from the allowed list
 `setTemporary(string $path): void` | Sets temporary handle path, eg.: `/mnt/storage/`, `php://temp`, `php://memory`
 `getTemporary(): resource` | Get temporary stream
-`setPublic(string $storage, string $url):` | Sets public storage and public URL for use with JSONP
 `download(string $url[, bool $ignoreDownloadError]): void` | Perform download
 `setResponseCacheTime(int $seconds): void` | Enable or disable cache for Proxy::respose() or Proxy::jsonp()
 `response(): void` | Dump response to output
-`jsonp(string $callback[, bool $public]): void` | Output JSONP callback with URL or data URI content
+`jsonp(string $callback): void` | Output JSONP callback with URL or data URI content
 `getContents(int $length = -1, int $offset = -1): string` | If last download was successful, contents will be returned
 `getContentType(): string` | If last download was successful, content-type will be returned
 `getHttpStatus(): int` | If last download was successful, HTTP status will be returned
@@ -376,3 +336,40 @@ $proxy->setDrivers([
     CustomDriver::class
 ]);
 ```
+
+## Common issues and solutions
+
+When adding an image that belongs to another domain in `<canvas>` and after that try to export the canvas
+for a new image, a security error occurs (actually occurs is a security lock), which can return the error:
+
+> SecurityError: DOM Exception 18
+>
+> Error: An attempt was made to break through the security policy of the user agent.
+
+If using Google Maps (or google maps static) you can get this error in console:
+
+> Google Maps API error: MissingKeyMapError
+
+You need get a API Key in: https://developers.google.com/maps/documentation/javascript/get-api-key
+
+If you get this error:
+
+> Access to Image at 'file:///...' from origin 'null' has been blocked by CORS policy: Invalid response. Origin 'null' is therefore not allowed access.
+
+Means that you are not using an HTTP server, html2canvas does not work over the `file:///` protocol, use Apache, Nginx or IIS with PHP for work.
+
+## Debuging with Web Console from DevTools
+
+If you have any issue is recommend to analyze the log with the Web Console tab and requests with Network tab from your browser, see documentations:
+
+* Firefox: https://firefox-source-docs.mozilla.org/devtools-user/
+* Chrome: https://developer.chrome.com/docs/devtools
+* Microsoft Edge: https://learn.microsoft.com/pt-br/microsoft-edge/devtools-guide-chromium/landing/
+
+An alternative is to debug issues by accessing the link directly:
+
+`http://[DOMAIN]/[PATH]/proxy?url=http%3A%2F%2Fmaps.googleapis.com%2Fmaps%2Fapi%2Fstaticmap%3Fcenter%3D40.714728%2C-73.998672%26zoom%3D12%26size%3D800x600%26maptype%3Droadmap%26sensor%3Dfalse%261&callback=html2canvas_0`
+
+Replace `[DOMAIN]` by your domain (eg. 127.0.0.1) and replace `[PATH]` by your project folder (eg.: `project-1/test`), something like:
+
+`http://localhost/project-1/test/proxy?url=http%3A%2F%2Fmaps.googleapis.com%2Fmaps%2Fapi%2Fstaticmap%3Fcenter%3D40.714728%2C-73.998672%26zoom%3D12%26size%3D800x600%26maptype%3Droadmap%26sensor%3Dfalse%261&callback=html2canvas_0`
