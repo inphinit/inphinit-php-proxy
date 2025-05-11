@@ -174,7 +174,8 @@ Content-Type | `Proxy::jsonp()`
 You can define another allowed content-type, example:
 
 ```php
-$proxy->addAllowedType('image/ico', true);
+$proxy->addAllowedType('image/x-icon', true);
+$proxy->addAllowedType('image/vnd.microsoft.icon', true);
 ```
 
 Second parameter of the method specifies whether the `Proxy::jsonp()` should use URL encoding or Base64 encoding in the data URI scheme.
@@ -253,7 +254,7 @@ $proxy->setDrivers([
 ]);
 
 $proxy->setTemporary('php://temp');
-$proxy->download($url);
+$proxy->download($url, true);
 
 $errcode = $proxy->getLastErrorCode();
 $httpStatus = $proxy->getHttpStatus();
