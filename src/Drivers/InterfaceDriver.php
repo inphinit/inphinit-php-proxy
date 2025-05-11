@@ -22,11 +22,11 @@ interface InterfaceDriver
     public function __construct(Proxy $proxy);
 
     /**
-     * Check driver support
+     * Check driver available
      *
      * @return bool
      */
-    public function support();
+    public function available();
 
     /**
      * Execute download

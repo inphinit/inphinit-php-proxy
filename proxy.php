@@ -17,14 +17,11 @@ require 'src/Drivers/StreamDriver.php';
 
 $proxy = new Proxy();
 
-// Enable debug mode
-// $proxy->setDebug(true);
-
 // Set allowed URLs
 // $proxy->urls([ 'https://*.domain.io/', 'https://cdn.foobar.io/' ]);
 
 // Set allowed content-types
-// $proxy->type([ 'image/jpeg', 'image/png' ]);
+// $proxy->addAllowedType('image/ico', true);
 
 // Extra configs for CURL
 // $proxy->setOptions('curl', [ CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_3 ]);
@@ -46,7 +43,17 @@ $proxy->setOptions('stream', [
 // $proxy->setOptions('timeout', 10);
 
 // Set max redirections from location: header
-// $proxy->setOptions('maxRedirs', 3);
+// $proxy->setOptions('max_redirs', 3);
+
+// Set current user-agent
+if (isset($_SERVER['HTTP_USER_AGENT'])) {
+    $proxy->setOptions('user_agent', $_SERVER['HTTP_USER_AGENT']);
+}
+
+// Set current referer
+if (isset($_SERVER['HTTP_REFERER'])) {
+    $proxy->setOptions('referer', $_SERVER['HTTP_REFERER']);
+}
 
 // Set drivers used for download
 $proxy->setDrivers([
@@ -55,18 +62,24 @@ $proxy->setDrivers([
 ]);
 
 // Set temporary location
-$proxy->setTemporary('php://temp');
+// $proxy->setTemporary('php://temp');
 
 // Use specific directory
-// $proxy->setTemporary(__DIR__ . '/cache');
+$proxy->setTemporary(__DIR__ . '/cache');
 
-// Execute download
-$proxy->download($url);
+try {
+    // Execute download
+    $proxy->download($url);
 
-if (empty($_GET['callback'])) {
-    // Display raw output
-    $proxy->response();
-} else {
-    // Display callback with data URI content
-    $proxy->jsonp($_GET['callback']);
+    if (empty($_GET['callback'])) {
+        // Display raw output
+        $proxy->response();
+    } else {
+        // Display callback with data URI content
+        $proxy->jsonp($_GET['callback']);
+    }
+} catch (Exception $ee) {
+    $code = $ee->getCode();
+    $message = $ee->getMessage();
+    echo "Error: ({$code}) {$message}";
 }

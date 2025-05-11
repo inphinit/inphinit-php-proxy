@@ -11,7 +11,6 @@ namespace Inphinit\Proxy;
 
 class Proxy
 {
-    const DEFAULT_CONTENT_TYPE = 'application/octet-stream';
     const DEFAULT_MAX_REDIRS = 5;
     const DEFAULT_TIMEOUT = 30;
 
@@ -25,29 +24,30 @@ class Proxy
     private $drivers = [];
     private $allowedUrls = ['*'];
     private $allowedTypes = [
-        'image/apng',
-        'image/png',
-        'image/avif',
-        'image/webp',
-        'image/jpeg',
-        'image/gif',
-        'image/svg+xml',
-        'image/svg-xml' // Support for old web servers (an old bug)
+        'image/apng' => true,
+        'image/png' => true,
+        'image/avif' => true,
+        'image/webp' => true,
+        'image/gif' => true,
+        'image/jpeg' => true,
+        'image/svg+xml' => false,
+        'image/svg-xml' => false // Support for old web servers (an old bug)
     ];
 
     private $contentType;
     private $httpStatus;
     private $errorCode;
     private $errorMessage;
+    private $hasResponse = false;
 
     private $publicStorage;
     private $publicUrl;
-    private $httpCacheTime = 60;
+    private $responseCacheTime = 60;
 
     public function __construct()
     {
         $this->core = class_exists('Inphinit\App');
-        $this->options['maxRedirs'] = self::DEFAULT_MAX_REDIRS;
+        $this->options['max_redirs'] = self::DEFAULT_MAX_REDIRS;
         $this->options['timeout'] = self::DEFAULT_TIMEOUT;
     }
 
@@ -60,7 +60,7 @@ class Proxy
      */
     public function setOptions($key, $value)
     {
-        if ($key === 'maxRedirs' && $value < 1) {
+        if ($key === 'max_redirs' && $value < 1) {
             $value = self::DEFAULT_MAX_REDIRS;
         }
 
@@ -75,12 +75,34 @@ class Proxy
     /**
      * Get generic options
      *
-     * @param string|null $key
+     * @param string $key Optional. If the parameter is not defined, it will
+     *                    return an array with all the settings already defined.
      * @return mixed
      */
     public function getOptions($key = null)
     {
+        if ($key === null) {
+            return $this->options;
+        }
+
         return isset($this->options[$key]) ? $this->options[$key] : null;
+    }
+
+    /**
+     * Get or redefine allowed URLs
+     *
+     * @param array $urls Optional. Redefine allowed URLs
+     * @return array      Return current allowed URLs
+     */
+    public function urls(array $urls = [])
+    {
+        if (empty($urls)) {
+            return $this->allowedUrls;
+        }
+
+        $current = $this->allowedUrls;
+        $this->allowedUrls = $urls;
+        return $current;
     }
 
     /**
@@ -95,37 +117,26 @@ class Proxy
     }
 
     /**
-     * Get or redefine allowed urls
+     * Add content-type to the allowed list
      *
-     * @param array $urls Optional. Redefine allowed urls
-     * @return array      Return current allowed urls
+     * @param string $type
+     * @param string $binary
+     * @return void
      */
-    public function urls(array $urls = [])
+    public function addAllowedType($type, $binary)
     {
-        if (empty($urls)) {
-            return $this->allowedUrls;
-        }
-
-        $current = $this->allowedUrls;
-        $this->allowedUrls = $urls;
-        return $current;
+        $this->allowedTypes[$type] = $binary;
     }
 
     /**
-     * Get or redefine allowed content-types
+     * Remove content-type from the allowed list
      *
-     * @param array $types Optional. Redefine allowed content-types
-     * @return array       Return current allowed content-types
+     * @param string $type
+     * @return void
      */
-    public function types(array $types = [])
+    public function removeAllowedType($type)
     {
-        if (empty($types)) {
-            return $this->allowedTypes;
-        }
-
-        $current = $this->allowedTypes;
-        $this->allowedTypes = $types;
-        return $current;
+        unset($this->allowedTypes[$type]);
     }
 
     /**
@@ -137,7 +148,7 @@ class Proxy
     public function setTemporary($path)
     {
         if ($this->temporary) {
-            $this->resetTemporary();
+            $this->reset();
             fclose($this->temporary);
         }
 
@@ -145,13 +156,13 @@ class Proxy
             $path = tempnam($path, '~' . mt_rand(0, 99));
         }
 
-        $this->temporary = fopen($path, 'r+');
+        $this->temporary = fopen($path, 'rb+');
     }
 
     /**
      * Get temporary stream
      *
-     * @return string
+     * @return resource
      */
     public function getTemporary()
     {
@@ -174,10 +185,13 @@ class Proxy
     /**
      * Perform download
      *
-     * @param string $url Define url to download
+     * @param string $url Set URL for download
+     * @param bool $ignoreDownloadError Optional. Set true for skip exception caused by download error
+     * @throws \Inphinit\Exception
+     * @throws \Exception
      * @return void
      */
-    public function download($url)
+    public function download($url, $ignoreDownloadError = false)
     {
         if ($this->temporary === null) {
             $this->raise('Temporary not defined, you need set Proxy::setTemporary()');
@@ -187,7 +201,7 @@ class Proxy
             $this->raise('URL not allowed: ' . $url);
         }
 
-        $this->resetTemporary();
+        $this->reset();
 
         if ($this->driver === null) {
             $selected = null;
@@ -195,7 +209,7 @@ class Proxy
             foreach ($this->drivers as $driver) {
                 $selected = new $driver($this);
 
-                if ($selected->support()) {
+                if ($selected->available()) {
                     break;
                 } else {
                     $selected = null;
@@ -211,8 +225,21 @@ class Proxy
 
         $this->driver->exec($url, $this->httpStatus, $this->contentType, $this->errorCode, $this->errorMessage);
 
-        if ($this->errorCode === null && !$this->contentType) {
-            $this->contentType = self::DEFAULT_CONTENT_TYPE;
+        $contentType = $this->contentType;
+
+        if ($contentType) {
+            $contentType = trim($contentType);
+        }
+
+        if (array_key_exists($contentType, $this->allowedTypes)) {
+            $this->raise('Not allowed Content-type: ' . $contentType);
+        }
+
+        $this->contentType = $contentType;
+        $this->hasResponse = $this->errorCode === null;
+
+        if ($ignoreDownloadError !== true && $this->hasResponse) {
+            $this->raise($this->errorMessage, $this->errorCode);
         }
     }
 
@@ -222,30 +249,28 @@ class Proxy
      * @param int $seconds Set seconds
      * @return void
      */
-    public function setHttpCacheTime($seconds)
+    public function setResponseCacheTime($seconds)
     {
-        $this->httpCacheTime = $seconds;
+        $this->responseCacheTime = $seconds;
     }
 
     /**
      * Dump response to output
      *
+     * @throws \Inphinit\Exception
+     * @throws \Exception
      * @return void
      */
     public function response()
     {
-        if ($this->temporary === null) {
-            $this->raise('Temporary not defined, you need set Proxy::setTemporary()');
+        if ($this->hasResponse === false) {
+            $this->raise('No downloads yet');
         }
 
-        if ($this->errorCode) {
-            $this->raise($this->errorMessage, $this->errorCode);
-        }
-
+        header('Access-Control-Allow-Headers: *');
+        header('Access-Control-Allow-Methods: OPTIONS, GET');
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Request-Method: *');
-        header('Access-Control-Allow-Methods: OPTIONS, GET');
-        header('Access-Control-Allow-Headers: *');
         header('Content-type: ' . $this->contentType);
 
         $this->httpCache();
@@ -264,16 +289,14 @@ class Proxy
      *
      * @param string $callback Set callback
      * @param string $public   Set public URL
+     * @throws \Inphinit\Exception
+     * @throws \Exception
      * @return void
      */
     public function jsonp($callback, $public = false)
     {
-        if ($this->temporary === null) {
-            $this->raise('Temporary not defined, you need set Proxy::setTemporary()');
-        }
-
-        if ($this->errorCode) {
-            $this->raise($this->errorMessage, $this->errorCode);
+        if ($this->hasResponse === false) {
+            $this->raise('No downloads yet');
         }
 
         header('Content-type: application/javascript');
@@ -286,16 +309,37 @@ class Proxy
         } else {
             $crlf = "\r\n";
 
+            $contentType = $this->contentType;
+            $extra = null;
+            $extract = explode(';', $this->contentType, 2);
+
+            if (isset($extract[1])) {
+                list($contentType, $extra) = $extract;
+            }
+
+            $binary = $this->allowedTypes[$contentType];
+
+            if ($binary) {
+                $contentType .= ';base64';
+            } elseif ($extra) {
+                $contentType .= ';' . $extra;
+            }
+
             echo $callback, '("';
-            echo 'data:' . $this->contentType . ';base64,';
+            echo 'data:' . $contentType . ',';
 
             $handle = $this->temporary;
 
             rewind($handle);
 
             while (feof($handle) === false) {
-                $raw = fread($handle, 8151);
-                echo base64_encode($raw);
+                $raw = fgets($handle, 4096);
+
+                if ($binary) {
+                    echo base64_encode($raw);
+                } else {
+                    echo rawurlencode($raw);
+                }
             }
 
             echo '");';
@@ -311,9 +355,7 @@ class Proxy
      */
     public function getContents($length = -1, $offset = -1)
     {
-        if ($this->temporary) {
-            return stream_get_contents($this->temporary, $length, $offset);
-        }
+        return $this->temporary ? stream_get_contents($this->temporary, $length, $offset) : '';
     }
 
     /**
@@ -357,12 +399,18 @@ class Proxy
     }
 
     /**
-     * Reset temporary contents
+     * Reset last download
      *
      * @return void
      */
-    public function resetTemporary()
+    public function reset()
     {
+        $this->contentType = null;
+        $this->httpStatus = null;
+        $this->errorCode = null;
+        $this->errorMessage = null;
+        $this->hasResponse = false;
+
         if ($this->temporary) {
             ftruncate($this->temporary, 0);
             rewind($this->temporary);
@@ -371,7 +419,7 @@ class Proxy
 
     private function httpCache()
     {
-        $seconds = $this->httpCacheTime;
+        $seconds = $this->responseCacheTime;
 
         if ($seconds > 0) {
             $datetime = gmdate('D, d M Y H:i:s');
@@ -416,6 +464,8 @@ class Proxy
 
     private function raise($message, $code = 0)
     {
+        $this->reset();
+
         if ($this->core) {
             throw new \Inphinit\Exception($message, $code, 3);
         } else {
@@ -427,7 +477,9 @@ class Proxy
     {
         if ($this->temporary) {
             fclose($this->temporary);
-            $this->driver = $this->temporary = null;
+            $this->temporary = null;
         }
+
+        $this->driver = null;
     }
 }

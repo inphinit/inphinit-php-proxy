@@ -30,14 +30,14 @@ class StreamDriver
     }
 
     /**
-     * Check driver support
+     * Check driver available
      *
      * @return bool
      */
-    public function support()
+    public function available()
     {
-        // No checks required
-        return true;
+        // For convenience, if ini_get is disabled, the function will return true
+        return function_exists('ini_get') === false || ini_get('allow_url_fopen') == 1;
     }
 
     /**
@@ -57,12 +57,17 @@ class StreamDriver
         if ($this->context === null || $this->lastUpdate < $update) {
             $this->lastUpdate = $update;
 
+            $timeout = $this->proxy->getOptions('timeout');
+
             $options = array(
                 'http' => array(
-                    'method' => 'GET',
-                    'max_redirects' => $this->proxy->getOptions('maxRedirs')
+                    'follow_location' => true,
+                    'max_redirects' => $this->proxy->getOptions('max_redirs'),
+                    'timeout' => $timeout
                 )
             );
+
+            $this->timeout = $timeout;
 
             $extra = $this->proxy->getOptions('stream');
 
@@ -70,11 +75,22 @@ class StreamDriver
                 $options += $extra;
             }
 
-            $timeout = $this->proxy->getOptions('timeout');
+            $referer = $this->proxy->getOptions('referer');
 
-            $options['http']['timeout'] = $timeout;
+            if ($referer) {
+                $options['http']['referer'] = $referer;
+            }
 
-            $this->timeout = $timeout;
+            $userAgent = $this->proxy->getOptions('user_agent');
+
+            if ($userAgent) {
+                $options['http']['user_agent'] = $userAgent;
+            }
+
+            if (empty($options['http']['method'])) {
+                $options['http']['method'] = 'GET';
+            }
+
             $this->context = stream_context_create($options);
         }
 
@@ -103,7 +119,7 @@ class StreamDriver
                 }
             }
 
-            if ($httpStatus !== 0) {
+            if ($httpStatus !== 0 && $httpStatus < 300) {
                 while (feof($handle) === false) {
                     if ($timeout < (microtime(true) - $start)) {
                         $timedOut = true;
@@ -112,8 +128,9 @@ class StreamDriver
                         break;
                     }
 
-                    $content = fgets($handle, 4096);
-                    fwrite($temp, $content);
+                    $data = fgets($handle, 4096);
+
+                    fwrite($temp, $data);
                 }
             }
 

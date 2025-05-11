@@ -1,4 +1,4 @@
-## Inphinit Proxy
+## About Inphinit Proxy
 
 > **NOTE:** In development
 
@@ -125,24 +125,36 @@ Method | Description
 --- | ---
 `setOptions(string $key, mixed $value): void` | Setup generic options
 `getOptions([string $key]): mixed` | Get generic options
-`setDrivers(array $drivers): void` | Set drivers used for download resource
-`urls([array $urls]): array` | Get or redefine allowed urls
-`types([array $types]): array` | Get or redefine allowed content-types
-`setTemporary(string $path): void` | Set temporary handle path, eg.: /mnt/storage/, php://temp, php://memory
-`getTemporary(): string` | Get temporary stream
-`setPublic(string $storage, string $url): void` | Set public storage and public URL for use with JSONP
-`download(string $url): void` | Perform download
-`setHttpCacheTime(int $seconds): void` | Enable or disable cache for `respose()` or `jsonp()`
+`urls([array $urls]): array` | Get or redefine allowed URLs
+`setDrivers(array $drivers): void` | Sets drivers used for download resource
+`addAllowedType(string $type, bool $binary): void` | Add Content-Type to the allowed list
+`removeAllowedType(string $type): void` | Remove content-type from the allowed list
+`setTemporary(string $path): void` | Sets temporary handle path, eg.: `/mnt/storage/`, `php://temp`, `php://memory`
+`getTemporary(): resource` | Get temporary stream
+`setPublic(string $storage, string $url):` | Sets public storage and public URL for use with JSONP
+`download(string $url[, bool $ignoreDownloadError]): void` | Perform download
+`setResponseCacheTime(int $seconds): void` | Enable or disable cache for Proxy::respose() or Proxy::jsonp()
 `response(): void` | Dump response to output
 `jsonp(string $callback[, bool $public]): void` | Output JSONP callback with URL or data URI content
-`getContents([int $length[, int $offset]]): string` | If last download was successful, contents will be returned|null
-`getContentType(): string` | If last download was successful, content-type will be returned|null
-`getHttpStatus(): int` | If last download was successful, HTTP status will be returned|null
-`getLastErrorCode(): int` | If last download was failed, error code will be returned|null
-`getLastErrorMessage(): void` | If last download was failed, error message will be returned
-`resetTemporary(): void` | Reset temporary contents
+`getContents(int $length = -1, int $offset = -1): string` | If last download was successful, contents will be returned
+`getContentType(): string` | If last download was successful, content-type will be returned
+`getHttpStatus(): int` | If last download was successful, HTTP status will be returned
+`getLastErrorCode(): int` | If last download was failed, error code will be returned
+`getLastErrorMessage(): string` | If last download was failed, error message will be returned
+`reset(): void` | Reset last download
 
-Setup Curl driver use generic options with `'curl'` in first param, eg.: `$proxy->setOptions('curl', [ ... ]);`, a sample for change SSL version:
+## Generic options
+
+Usage | Description
+--- | ---
+`setOptions('max_redirs', int $value)` | Set the redirect limit
+`setOptions('timeout', int $value)` | Set timeout for connections
+`setOptions('user_agent', string $value)` | Set Browser User-Agent
+`setOptions('referer', string $value)` | Set request header contains the absolute or partial address from which a resource has been requested
+`setOptions('curl', array $value)` | Options for `CurlDriver`. See: https://www.php.net/manual/en/curl.constants.php
+`setOptions('stream', array $value)` | Options for `StreamDriver`. See: https://www.php.net/manual/en/context.php
+
+Setup cURL driver use generic options with `'curl'` in first param, eg.: `$proxy->setOptions('curl', [ ... ]);`, a sample for change SSL version:
 
 ```php
 $proxy->setOptions('curl', [
@@ -159,14 +171,14 @@ $proxy->setOptions('curl', [
 ]);
 ```
 
-For more constants options for use with `$proxy->setOptions('curl', [ ... ]);`, see: https://www.php.net/manual/en/curl.constants.php
+For more constants options for use with `$proxy->setOptions('curl', [ ... ])`, see: https://www.php.net/manual/en/curl.constants.php
 
-For setup Stream driver use generic options with `'stream'` in first param, eg.: `$proxy->setOptions('stream', [ ... ]);`, a sample for set User-Agent string:
+For setup Stream driver use generic options with `'stream'` in first param, eg.: `$proxy->setOptions('stream', [ ... ])`, a sample for set HTTP protocol version:
 
 ```php
 $proxy->setOptions('stream', [
     'http' => [
-        'user_agent' => 'foo/bar',
+        'protocol_version' => 1.0,
     ]
 ]);
 ```
@@ -184,11 +196,38 @@ $proxy->setOptions('stream', [
 ]);
 ```
 
-For more options for use with `$proxy->setOptions('stream', [ ... ]);`, see: https://www.php.net/manual/en/context.php
+## Allowed Content-Type
+
+When executing the download() method a content-type validation will be performed, by default the following Content-Types are allowed:
+
+Content-Type | `Proxy::jsonp()`
+--- | ---
+`image/apng` | base64
+`image/png` | base64
+`image/avif` | base64
+`image/webp` | base64
+`image/gif` | base64
+`image/jpeg` | base64
+`image/svg+xml` | URL-encoded
+`image/svg-xml` | URL-encoded
+
+You can define another allowed content-type, example:
+
+```php
+$proxy->addAllowedType('image/ico', true);
+```
+
+Second parameter of the method specifies whether the `Proxy::jsonp()` should use URL encoding or Base64 encoding in the data URI scheme.
+
+To remove an allowed Content-Type use the `Proxy::removeAllowedType()` method, example:
+
+```php
+$proxy->removeAllowedType('image/apng');
+```
 
 ## How to use
 
-To return the download response directly to the browser, use the `Proxy::response` method:
+To return the download response directly to the browser, use the `Proxy::response()` method:
 
 ```php
 use Inphinit\Proxy\Proxy;
@@ -227,9 +266,12 @@ $proxy->setDrivers([
 ]);
 
 $proxy->setTemporary('php://temp');
-$proxy->download($url);
 
-$proxy->jsonp($_GET['callback']);
+try {
+    $proxy->download($url);
+    $proxy->jsonp($_GET['callback']);
+} catch (Exception $ee) {
+}
 ```
 
 If you need to handle content or errors manually, you can use the `Proxy::getContents`, `Proxy::getContentType`, `Proxy::getHttpStatus`, `Proxy::getLastErrorCode`, `Proxy::getLastErrorMessage` methods:
@@ -258,7 +300,7 @@ $httpStatus = $proxy->getHttpStatus();
 
 if ($errcode) {
     echo $code, ': ', $proxy->getLastErrorCode();
-} elseif ($httpStatus >= 400) {
+} elseif ($httpStatus < 200 && $httpStatus > 299) {
     echo 'HTTP request failed:', $httpStatus;
 } else {
     // Sucesss
@@ -298,14 +340,15 @@ The following methods are required to write an `Inphinit\Proxy` compatible drive
 
 Method | Description
 --- | ---
-`__construct(Proxy $proxy)` | It will receive the Proxy instance
-`support(): bool` | It will inform if the server has support
+`__construct(Proxy $proxy)` | It will receive the `Proxy` instance
+`available(): bool` | It will inform if the server has support
 `exec(string $url, int &$httpStatus, string &$contentType, int &$errorCode, string &$errorMessage): void` | It will execute the driver and fill in the references
 
-*Optionally* you can use Inphinit Interface to avoid errors when writing:
+*Optionally* you can use `InterfaceDriver` to avoid errors when writing:
 
 ```php
 use Inphinit\Proxy\Drivers\InterfaceDriver;
+use Inphinit\Proxy\Proxy;
 
 class CustomDriver implements InterfaceDriver
 {
@@ -314,7 +357,7 @@ class CustomDriver implements InterfaceDriver
         ...
     }
 
-    public function support()
+    public function available()
     {
         ...
     }

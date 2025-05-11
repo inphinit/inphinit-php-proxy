@@ -30,11 +30,11 @@ class CurlDriver
     }
 
     /**
-     * Check driver support
+     * Check driver available
      *
      * @return bool
      */
-    public function support()
+    public function available()
     {
         return function_exists('curl_init');
     }
@@ -61,14 +61,12 @@ class CurlDriver
             $ch = $this->handle;
             $timeout = $this->proxy->getOptions('timeout');
 
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout ? $timeout : $this->timeout);
-            curl_setopt($ch, CURLOPT_MAXREDIRS, $this->proxy->getOptions('maxRedirs'));
-
             $options = array(
-                CURLOPT_HEADER => false,
-                CURLOPT_RETURNTRANSFER => false,
+                CURLOPT_CONNECTTIMEOUT => $timeout ? $timeout : $this->timeout,
                 CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS => $this->proxy->getOptions('maxRedirs')
+                CURLOPT_HEADER => false,
+                CURLOPT_MAXREDIRS => $this->proxy->getOptions('max_redirs'),
+                CURLOPT_RETURNTRANSFER => false
             );
 
             $extra = $this->proxy->getOptions('curl');
@@ -78,6 +76,18 @@ class CurlDriver
             }
 
             curl_setopt_array($ch, $options);
+
+            $referer = $this->proxy->getOptions('referer');
+
+            if ($referer) {
+                curl_setopt($ch, CURLOPT_REFERER, $referer);
+            }
+
+            $userAgent = $this->proxy->getOptions('user_agent');
+
+            if ($userAgent) {
+                curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
+            }
 
             $temp = $this->proxy->getTemporary();
 
