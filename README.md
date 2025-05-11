@@ -50,7 +50,7 @@ $proxy->download($_GET['url']);
 $proxy->response();
 ```
 
-If you are not using web frameworks, you can download the release from https://github.com/inphinit/inphinit-php-proxy/releases/tag/2.0.0, then extract the contents and move it to the web server and rename the folder, like this (optional):
+If you are not using web frameworks, you can download the release from https://github.com/inphinit/inphinit-php-proxy/releases, then extract the contents and move it to the web server and rename the folder, like this (optional):
 
 ```bash
 mv inphinit-php-proxy-2.0.0 proxy
