@@ -22,7 +22,7 @@ To install it you must have at least _PHP 5.4_, but it is recommended that you u
 You can install via composer:
 
 ```bash
-composer install inphinit/proxy
+composer require inphinit/proxy
 ```
 
 Then add this to your script or controller:
