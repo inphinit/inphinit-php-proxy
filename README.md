@@ -12,12 +12,14 @@ You do not use PHP, but need html2canvas working with proxy, see other proxies:
 * [html2canvas proxy in asp classic (vbscript)](https://github.com/brcontainer/html2canvas-asp-vbscript-proxy)
 * [html2canvas proxy in python (work any framework)](https://github.com/brcontainer/html2canvas-proxy-python)
 
+## Requirements
+
+1. PHP 8 (https://www.php.net/supported-versions.php)
+    * Minimal _PHP 5.4_ (backward compatibility is maintained for users with upgrade limitations)
+1. cURL PHP extension to use `CurlDriver`
+1. `allow_url_fopen` must be set to `1` on `php.ini` to use `StreamDriver`
+
 ## Installing
-
-To install it you must have at least _PHP 5.4_, but it is recommended that you use _PHP 8_ due to PHP support issues, read:
-
-- https://www.php.net/supported-versions.php
-- https://www.php.net/eol.php
 
 You can install via composer:
 
