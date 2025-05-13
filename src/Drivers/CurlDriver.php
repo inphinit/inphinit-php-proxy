@@ -30,7 +30,7 @@ class CurlDriver
     }
 
     /**
-     * Check driver available
+     * Check if the driver is available
      *
      * @return bool
      */

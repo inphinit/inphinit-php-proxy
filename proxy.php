@@ -19,14 +19,14 @@ $proxy = new Proxy();
 
 // Set allowed URLs
 /*
-$proxy->setAllowUrls([
+$proxy->setAllowedUrls([
     'https://*.domain.io/',
     'https://cdn.foobar.io/'
 ]);
 */
 
 // Set allowed content-types
-// $proxy->addAllowType('image/ico', true);
+// $proxy->addAllowedType('image/ico', true);
 
 // Extra configs for CurlDriver
 // $proxy->setOptions('curl', [ CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_3 ]);

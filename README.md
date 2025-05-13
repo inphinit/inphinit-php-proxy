@@ -89,9 +89,9 @@ Method | Description
 `setDrivers(array $drivers): void` | Set drivers used to download the resource
 `setOptions(string $key, mixed $value): void` | Set generic options
 `getOptions([string $key]): mixed` | Get generic options
-`setAllowUrls(array $urls): void` | Set allowed URLs
-`addAllowType(string $type, bool $binary): void` | Add content-type to the allowed list
-`removeAllowType(string $type): void` | Remove content-type from the allowed list
+`setAllowedUrls(array $urls): void` | Set allowed URLs
+`addAllowedType(string $type, bool $binary): void` | Add content-type to the allowed list
+`removeAllowedType(string $type): void` | Remove content-type from the allowed list
 `setTemporary(string $path): void` | Sets temporary handle path, eg.: `/mnt/storage/`, `php://temp`, `php://memory`
 `getTemporary(): resource` | Get temporary stream
 `download(string $url[, bool $ignoreDownloadError]): void` | Perform download
@@ -158,7 +158,7 @@ $proxy->setOptions('stream', [
 ]);
 ```
 
-## Allow Content-Type
+## Content-Type allowed
 
 When executing the download() method a content-type validation will be performed, by default the following Content-Types are allowed:
 
@@ -176,16 +176,16 @@ Content-Type | `Proxy::jsonp()`
 You can define another allowed content-type, example:
 
 ```php
-$proxy->addAllowType('image/x-icon', true);
-$proxy->addAllowType('image/vnd.microsoft.icon', true);
+$proxy->addAllowedType('image/x-icon', true);
+$proxy->addAllowedType('image/vnd.microsoft.icon', true);
 ```
 
 Second parameter of the method specifies whether the `Proxy::jsonp()` should use URL encoding or Base64 encoding in the data URI scheme.
 
-To remove an allowed Content-Type use the `Proxy::removeAllowType()` method, example:
+To remove an allowed Content-Type use the `Proxy::removeAllowedType()` method, example:
 
 ```php
-$proxy->removeAllowType('image/apng');
+$proxy->removeAllowedType('image/apng');
 ```
 
 ## How to use
@@ -286,11 +286,11 @@ You can also limit the URLs that the proxy can access:
 
 ```php
 $proxy->urls([
-    'https://domain1.com/',        // Allow request in all paths from https://domain1.com
-    'https://domain2.com/images/', // Allow requests in /images/ from https://domain2.com
-    'https://*.mainsite.io/',      // Allow requests in mainsite.com subdomain
-    'https://foo.io:8000/',        // Allow requests in other.io with port 8000
-    '*://other.io/',               // Allow HTTP or HTTPS requests in other.io
+    'https://domain1.com/',        // Allows requests on any path to https://domain1.com
+    'https://domain2.com/images/', // Allows requests from the path /images/ on https://domain1.com
+    'https://*.mainsite.io/',      // Allows requests on subdomains of mainsite.io
+    'https://foo.io:8000/',        // Allows requests to foo.io with port 8000
+    '*://other.io/',               // Allows HTTPS and HTTP requests to other.io
 ]);
 
 $proxy->setTemporary('php://temp');

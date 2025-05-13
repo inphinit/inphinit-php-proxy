@@ -21,9 +21,9 @@ class Proxy
     ];
     private $driver;
     private $drivers = [];
-    private $allowUrls = [];
-    private $allowUrlsRegEx;
-    private $allowTypes = [
+    private $allowedUrls = [];
+    private $allowedUrlsRegEx;
+    private $allowedTypes = [
         'image/apng' => true,
         'image/png' => true,
         'image/avif' => true,
@@ -102,10 +102,10 @@ class Proxy
      * @param array $urls
      * @return void
      */
-    public function setAllowUrls(array $urls)
+    public function setAllowedUrls(array $urls)
     {
-        $this->allowUrls = $urls;
-        $this->allowUrlsRegEx = null;
+        $this->allowedUrls = $urls;
+        $this->allowedUrlsRegEx = null;
     }
 
     /**
@@ -115,9 +115,9 @@ class Proxy
      * @param string $binary
      * @return void
      */
-    public function addAllowType($type, $binary)
+    public function addAllowedType($type, $binary)
     {
-        $this->allowTypes[$type] = $binary;
+        $this->allowedTypes[$type] = $binary;
     }
 
     /**
@@ -126,9 +126,9 @@ class Proxy
      * @param string $type
      * @return void
      */
-    public function removeAllowType($type)
+    public function removeAllowedType($type)
     {
-        unset($this->allowTypes[$type]);
+        unset($this->allowedTypes[$type]);
     }
 
     /**
@@ -206,7 +206,7 @@ class Proxy
             if ($selected) {
                 $this->driver = $selected;
             } else {
-                $this->raise('The selected drivers are not supported');
+                $this->raise('None of the defined drivers are supported');
             }
         }
 
@@ -218,8 +218,8 @@ class Proxy
             $contentType = trim($contentType);
         }
 
-        if (array_key_exists($contentType, $this->allowTypes) === false) {
-            $this->raise('Not allowed Content-type: ' . $contentType);
+        if (array_key_exists($contentType, $this->allowedTypes) === false) {
+            $this->raise('The Content-Type header has the value ' . $contentType . ', which is not allowed');
         }
 
         $this->contentType = $contentType;
@@ -301,7 +301,7 @@ class Proxy
             list($contentType, $extra) = $extract;
         }
 
-        $binary = $this->allowTypes[$contentType];
+        $binary = $this->allowedTypes[$contentType];
 
         if ($binary) {
             $contentType .= ';base64';
@@ -429,10 +429,10 @@ class Proxy
 
     private function validateUrl($url)
     {
-        $urlList = $this->allowUrls;
+        $urlList = $this->allowedUrls;
 
         if ($urlList) {
-            if ($this->allowUrlsRegEx === null) {
+            if ($this->allowedUrlsRegEx === null) {
                 $regex = implode('|', $urlList);
                 $regex = preg_quote($regex, '#');
                 $regex = strtr($regex, array(
@@ -440,10 +440,10 @@ class Proxy
                     '\\|' => '|'
                 ));
 
-                $this->allowUrlsRegEx = '#^(' . $regex . ')#';
+                $this->allowedUrlsRegEx = '#^(' . $regex . ')#';
             }
 
-            if (!preg_match($this->allowUrlsRegEx, $url)) {
+            if (!preg_match($this->allowedUrlsRegEx, $url)) {
                 return false;
             }
         }
