@@ -1,6 +1,6 @@
 <?php
 /**
- * Inphinit
+ * Inphinit Proxy
  *
  * Copyright (c) 2025 Guilherme Nascimento
  *
@@ -181,7 +181,13 @@ class Proxy
     public function download($url, $ignoreDownloadError = false)
     {
         if ($this->temporary === null) {
-            $this->raise('Temporary not defined, you need set Proxy::setTemporary()');
+            $temporary = tmpfile();
+
+            if ($temporary) {
+                $this->temporary = $temporary;
+            } else {
+                $this->raise('Failed to open temporary file');
+            }
         }
 
         if ($this->validateUrl($url) === false) {

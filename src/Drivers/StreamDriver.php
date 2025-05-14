@@ -1,6 +1,6 @@
 <?php
 /**
- * Inphinit
+ * Inphinit Proxy
  *
  * Copyright (c) 2025 Guilherme Nascimento
  *

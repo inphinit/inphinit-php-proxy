@@ -42,9 +42,6 @@ $proxy->setDrivers([
     StreamDriver::class
 ]);
 
-// Set temporary location
-$proxy->setTemporary('php://temp');
-
 // Execute download
 $proxy->download($_GET['url']);
 
@@ -204,7 +201,6 @@ $proxy->setDrivers([
     StreamDriver::class
 ]);
 
-$proxy->setTemporary('php://temp');
 $proxy->download($url);
 
 $proxy->response();
@@ -227,8 +223,6 @@ $proxy->setDrivers([
     CurlDriver::class,
     StreamDriver::class
 ]);
-
-$proxy->setTemporary('php://temp');
 
 try {
     $proxy->download($url);
@@ -255,7 +249,6 @@ $proxy->setDrivers([
     StreamDriver::class
 ]);
 
-$proxy->setTemporary('php://temp');
 $proxy->download($url, true);
 
 $errcode = $proxy->getLastErrorCode();
@@ -293,7 +286,6 @@ $proxy->urls([
     '*://other.io/',               // Allows HTTPS and HTTP requests to other.io
 ]);
 
-$proxy->setTemporary('php://temp');
 $proxy->download($url);
 ```
 

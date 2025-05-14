@@ -66,9 +66,6 @@ $proxy->setDrivers([
     StreamDriver::class
 ]);
 
-// Set temporary location
-$proxy->setTemporary('php://temp');
-
 // Use specific directory
 // $proxy->setTemporary(__DIR__ . '/cache');
 
