@@ -134,7 +134,7 @@ class Proxy
     /**
      * Set temporary handle path, eg.: /mnt/storage/, php://temp, php://memory
      *
-     * @param string $path Set path
+     * @param string $path
      * @throws \Inphinit\Exception
      * @throws \Exception
      * @return void
@@ -472,13 +472,14 @@ class Proxy
     {
         if ($this->temporary) {
             $meta_data = stream_get_meta_data($this->temporary);
+            $path = $meta_data['uri'];
 
             fclose($this->temporary);
 
             $this->temporary = null;
 
-            if (strpos($meta_data['uri'], 'php://') !== 0) {
-                unlink($meta_data['uri']);
+            if (strpos($path, 'php://') !== 0 && is_file($path)) {
+                unlink($path);
             }
         }
 
