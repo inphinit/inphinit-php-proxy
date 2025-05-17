@@ -17,6 +17,42 @@ require 'src/Drivers/StreamDriver.php';
 
 $proxy = new Proxy();
 
+// Set drivers used for download
+$proxy->setDrivers([
+    //CurlDriver::class,
+    StreamDriver::class
+]);
+
+/*
+// PHP 5.4 sintax
+$proxy->setDrivers([
+    'Inphinit\Proxy\Drivers\CurlDriver',
+    'Inphinit\Proxy\Drivers\StreamDriver',
+]);
+*/
+
+// Set max download size
+// $proxy->setMaxDownloadSize(5242880);
+
+// Set max redirections
+// $proxy->setMaxRedirs(3);
+
+// Set current referer
+if (isset($_SERVER['HTTP_REFERER'])) {
+    $proxy->setReferer($_SERVER['HTTP_REFERER']);
+}
+
+// Set max timeout connection
+// $proxy->setTimeout(10);
+
+// Set current user-agent
+if (isset($_SERVER['HTTP_USER_AGENT'])) {
+    $proxy->setUserAgent($_SERVER['HTTP_USER_AGENT']);
+}
+
+// Use specific directory
+// $proxy->setTemporary(__DIR__ . '/cache');
+
 // Set allowed URLs
 /*
 $proxy->setAllowedUrls([
@@ -25,7 +61,7 @@ $proxy->setAllowedUrls([
 ]);
 */
 
-// Set allowed content-types
+// Set allowed Content-Types
 // $proxy->addAllowedType('image/ico', true);
 
 // Extra configs for CurlDriver
@@ -43,31 +79,6 @@ $proxy->setOptions('stream', [
     ]
 ]);
 */
-
-// Set max timeout connection
-// $proxy->setOptions('timeout', 10);
-
-// Set max redirections from location: header
-// $proxy->setOptions('max_redirs', 3);
-
-// Set current user-agent
-if (isset($_SERVER['HTTP_USER_AGENT'])) {
-    $proxy->setOptions('user_agent', $_SERVER['HTTP_USER_AGENT']);
-}
-
-// Set current referer
-if (isset($_SERVER['HTTP_REFERER'])) {
-    $proxy->setOptions('referer', $_SERVER['HTTP_REFERER']);
-}
-
-// Set drivers used for download
-$proxy->setDrivers([
-    CurlDriver::class,
-    StreamDriver::class
-]);
-
-// Use specific directory
-// $proxy->setTemporary(__DIR__ . '/cache');
 
 try {
     // Execute download

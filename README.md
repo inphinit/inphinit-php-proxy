@@ -83,12 +83,23 @@ html2canvas(document.getElementById('container'), {
 
 Method | Description
 --- | ---
+`setMaxDownloadSize(int $value): void` | Set the maximum allowed download size
+`getMaxDownloadSize(): int` | Get the maximum allowed download size
+`setMaxRedirs(int $value): void` | Set the maximum number of HTTP redirects
+`getMaxRedirs(): int` | Get the maximum number of HTTP redirects
+`setReferer(string $value): void` | Set the Referer request header
+`getReferer(): string` | Get the Referer request header
+`setTimeout(int $value): void` | Set connection timeout
+`getTimeout(): int` | Get connection timeout
+`setUserAgent(string $value): void` | Set the User-Agent request header
+`getUserAgent(): string` | Get the User-Agent request header
 `setDrivers(array $drivers): void` | Set drivers used to download the resource
 `setOptions(string $key, mixed $value): void` | Set generic options
 `getOptions([string $key]): mixed` | Get generic options
 `setAllowedUrls(array $urls): void` | Set allowed URLs
-`addAllowedType(string $type, bool $binary): void` | Add content-type to the allowed list
-`removeAllowedType(string $type): void` | Remove content-type from the allowed list
+`addAllowedType(string $type, bool $binary): void` | Add Content-Type to the allowed list
+`removeAllowedType(string $type): void` | Remove Content-Type from the allowed list
+`isAllowedType(string $type[, string &$errorMessage])` | Check if Content-Type is allowed
 `setTemporary(string $path): void` | Sets temporary handle path, eg.: `/mnt/storage/`, `php://temp`, `php://memory`
 `getTemporary(): resource` | Get temporary stream
 `download(string $url[, bool $ignoreDownloadError]): void` | Perform download
@@ -96,20 +107,18 @@ Method | Description
 `response(): void` | Dump response to output
 `jsonp(string $callback): void` | Output JSONP callback with URL or data URI content
 `getContents([int $length[, int $offset]]): string` | If last download was successful, contents will be returned
-`getContentType(): string` | If last download was successful, content-type will be returned
+`getContentType(): string` | If last download was successful, Content-Type will be returned
 `getHttpStatus(): int` | If last download was successful, HTTP status will be returned
-`getLastErrorCode(): int` | If last download was failed, error code will be returned
-`getLastErrorMessage(): string` | If last download was failed, error message will be returned
+`getErrorCode(): int` | If last download was failed, error code will be returned
+`getErrorMessage(): string` | If last download was failed, error message will be returned
 `reset(): void` | Reset last download
 
 ## Generic options
 
+Generic options are primarily used for driver configurations. Since each driver may require different types of settings, the most flexible approach is to allow these options to store any value. This is particularly useful when developing a new driver. Existing options include:
+
 Usage | Description
 --- | ---
-`setOptions('max_redirs', int $value)` | Set the redirect limit
-`setOptions('timeout', int $value)` | Set timeout for connections
-`setOptions('user_agent', string $value)` | Set Browser User-Agent
-`setOptions('referer', string $value)` | Set request header contains the absolute or partial address from which a resource has been requested
 `setOptions('curl', array $value)` | Options for `CurlDriver`. See: https://www.php.net/manual/en/curl.constants.php
 `setOptions('stream', array $value)` | Options for `StreamDriver`. See: https://www.php.net/manual/en/context.php
 
@@ -157,7 +166,7 @@ $proxy->setOptions('stream', [
 
 ## Content-Type allowed
 
-When executing the download() method a content-type validation will be performed, by default the following Content-Types are allowed:
+When executing the download() method a Content-Type validation will be performed, by default the following Content-Types are allowed:
 
 Content-Type | `Proxy::jsonp()`
 --- | ---
@@ -170,7 +179,7 @@ Content-Type | `Proxy::jsonp()`
 `image/svg+xml` | URL-encoded
 `image/svg-xml` | URL-encoded
 
-You can define another allowed content-type, example:
+You can define another allowed Content-Type, example:
 
 ```php
 $proxy->addAllowedType('image/x-icon', true);
@@ -231,16 +240,12 @@ try {
 }
 ```
 
-If you need to handle content or errors manually, you can use the `Proxy::getContents`, `Proxy::getContentType`, `Proxy::getHttpStatus`, `Proxy::getLastErrorCode`, `Proxy::getLastErrorMessage` methods:
+If you need to handle content, you can use the `Proxy::getContents`, `Proxy::getContentType`, `Proxy::getHttpStatus` methods:
 
 ```php
 use Inphinit\Proxy\Proxy;
 use Inphinit\Proxy\Drivers\CurlDriver;
 use Inphinit\Proxy\Drivers\StreamDriver;
-
-if (empty($_GET['callback'])) {
-    die('Missing callback');
-}
 
 $proxy = new Proxy();
 
@@ -249,21 +254,21 @@ $proxy->setDrivers([
     StreamDriver::class
 ]);
 
-$proxy->download($url, true);
+try {
+    $proxy->download($url);
 
-$errcode = $proxy->getLastErrorCode();
-$httpStatus = $proxy->getHttpStatus();
-
-if ($errcode) {
-    echo $code, ': ', $proxy->getLastErrorCode();
-} elseif ($httpStatus < 200 && $httpStatus > 299) {
-    echo 'HTTP request failed:', $httpStatus;
-} else {
-    // Sucesss
-    $type = $proxy->getContentType();
+    // Success
     $contents = $proxy->getContents();
+    $contentType = $proxy->getContentType();
+    $httpStatus = $proxy->getHttpStatus();
 
     ...
+
+} catch (Exception $ee) {
+    $code = $ee->getCode();
+    $message = $ee->getMessage();
+
+    echo 'Error: (', $code, ') ', $message;
 }
 ```
 

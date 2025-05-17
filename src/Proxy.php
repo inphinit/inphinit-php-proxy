@@ -11,11 +11,13 @@ namespace Inphinit\Proxy;
 
 class Proxy
 {
-    const DEFAULT_MAX_REDIRS = 5;
-    const DEFAULT_TIMEOUT = 30;
+    private $maxDownloadSize = 2097152;
+    private $maxRedirs = 5;
+    private $referer;
+    private $timeout = 30;
+    private $userAgent;
 
     private $temporary;
-    private $core = false;
     private $options = [
         'update' => 0
     ];
@@ -41,11 +43,123 @@ class Proxy
     private $hasResponse = false;
     private $responseCacheTime = 60;
 
+    private $coreException = false;
+    private $coreHttpStatus = false;
+
     public function __construct()
     {
-        $this->core = class_exists('Inphinit\App');
-        $this->options['max_redirs'] = self::DEFAULT_MAX_REDIRS;
-        $this->options['timeout'] = self::DEFAULT_TIMEOUT;
+        $this->coreException = class_exists('Inphinit\Exception');
+        $this->coreHttpStatus = class_exists('Inphinit\Http\Status');
+    }
+
+    /**
+     * Set the maximum allowed download size
+     *
+     * @param int $value
+     * @return void
+     */
+    public function setMaxDownloadSize($value)
+    {
+        $this->maxDownloadSize = $value;
+        $this->refreshOptions();
+    }
+
+    /**
+     * Get the maximum allowed download size
+     *
+     * @return int
+     */
+    public function getMaxDownloadSize()
+    {
+        return $this->maxDownloadSize;
+    }
+
+    /**
+     * Set the maximum number of HTTP redirects
+     *
+     * @param int $value
+     * @return void
+     */
+    public function setMaxRedirs($value)
+    {
+        $this->maxRedirs = $value;
+        $this->refreshOptions();
+    }
+
+    /**
+     * Get the maximum number of HTTP redirects
+     *
+     * @return int
+     */
+    public function getMaxRedirs()
+    {
+        return $this->maxRedirs;
+    }
+
+    /**
+     * Set the Referer request header
+     *
+     * @param string $value
+     * @return void
+     */
+    public function setReferer($value)
+    {
+        $this->referer = $value;
+        $this->refreshOptions();
+    }
+
+    /**
+     * Get the Referer request header
+     *
+     * @return string
+     */
+    public function getReferer()
+    {
+        return $this->referer;
+    }
+
+    /**
+     * Set connection timeout
+     *
+     * @param int $value
+     * @return void
+     */
+    public function setTimeout($value)
+    {
+        $this->timeout = $value;
+        $this->refreshOptions();
+    }
+
+    /**
+     * Get connection timeout
+     *
+     * @return int
+     */
+    public function getTimeout()
+    {
+        return $this->timeout;
+    }
+
+    /**
+     * Set the User-Agent request header
+     *
+     * @param string $value
+     * @return void
+     */
+    public function setUserAgent($value)
+    {
+        $this->userAgent = $value;
+        $this->refreshOptions();
+    }
+
+    /**
+     * Get the User-Agent request header
+     *
+     * @return string
+     */
+    public function getUserAgent()
+    {
+        return $this->userAgent;
     }
 
     /**
@@ -68,16 +182,8 @@ class Proxy
      */
     public function setOptions($key, $value)
     {
-        if ($key === 'max_redirs' && $value < 1) {
-            $value = self::DEFAULT_MAX_REDIRS;
-        }
-
-        if ($key === 'timeout' && $value < 1) {
-            $value = self::DEFAULT_TIMEOUT;
-        }
-
         $this->options[$key] = $value;
-        $this->options['update'] += 1;
+        $this->refreshOptions();
     }
 
     /**
@@ -109,7 +215,7 @@ class Proxy
     }
 
     /**
-     * Add content-type to the allowed list
+     * Add Content-Type to the allowed list
      *
      * @param string $type
      * @param string $binary
@@ -121,7 +227,7 @@ class Proxy
     }
 
     /**
-     * Remove content-type from the allowed list
+     * Remove Content-Type from the allowed list
      *
      * @param string $type
      * @return void
@@ -129,6 +235,25 @@ class Proxy
     public function removeAllowedType($type)
     {
         unset($this->allowedTypes[$type]);
+    }
+
+    /**
+     * Check if Content-Type is allowed
+     *
+     * @param string $type
+     * @return void
+     */
+    public function isAllowedType($type, &$errorMessage = null)
+    {
+        $type = trim($type);
+
+        if (array_key_exists($type, $this->allowedTypes)) {
+            return true;
+        }
+
+        $errorMessage = 'The Content-Type header has the value "' . $type . '", which is not allowed';
+
+        return false;
     }
 
     /**
@@ -172,13 +297,12 @@ class Proxy
     /**
      * Perform download
      *
-     * @param string $url Set URL for download
-     * @param bool $ignoreDownloadError Optional. Set true for skip exception caused by download error
+     * @param string $url          Set URL for download
      * @throws \Inphinit\Exception
      * @throws \Exception
-     * @return void
+     * @return bool
      */
-    public function download($url, $ignoreDownloadError = false)
+    public function download($url)
     {
         if ($this->temporary === null) {
             $temporary = tmpfile();
@@ -193,6 +317,10 @@ class Proxy
         if ($this->validateUrl($url) === false) {
             $this->raise('URL not allowed: ' . $url);
         }
+
+        $this->errorCode = null;
+        $this->errorMessage = null;
+        $this->httpStatus = null;
 
         $this->reset();
 
@@ -216,26 +344,42 @@ class Proxy
             }
         }
 
-        $this->driver->exec($url, $this->httpStatus, $this->contentType, $this->errorCode, $this->errorMessage);
+        $success = $this->driver->exec($url, $this->httpStatus, $this->contentType, $this->errorCode, $this->errorMessage);
 
-        $contentType = $this->contentType;
+        if ($success) {
+            $httpStatus = $this->httpStatus;
+            $contentType = $this->contentType;
 
-        if ($contentType) {
-            $contentType = trim($contentType);
+            if ($contentType) {
+                $contentType = trim($contentType);
+            }
+
+            $this->contentType = $contentType;
+
+            if ($httpStatus < 200 || $httpStatus >= 300) {
+                $success = false;
+
+                $this->errorCode = $httpStatus;
+                $this->errorMessage = 'HTTP error: ' . $httpStatus;
+
+                if ($this->coreHttpStatus) {
+                    $this->errorMessage = Status::message($httpStatus, $this->errorMessage);
+                }
+            } elseif ($this->isAllowedType($contentType, $this->errorMessage) === false) {
+                $success = false;
+                $this->errorCode = 0;
+            }
         }
 
-        if (array_key_exists($contentType, $this->allowedTypes) === false) {
-            $this->raise('The Content-Type header has the value ' . $contentType . ', which is not allowed');
-        }
+        if ($success) {
+            $this->hasResponse = true;
+        } else {
+            $this->reset();
 
-        $this->contentType = $contentType;
-        $this->hasResponse = $this->errorCode === null;
+            if ($this->errorMessage === null) {
+                $this->errorMessage = 'An unexpected issue occurred';
+            }
 
-        if ($this->errorCode !== null && $this->errorMessage === null) {
-            $this->errorMessage = 'Unknown';
-        }
-
-        if ($ignoreDownloadError !== true && !$this->hasResponse) {
             $this->raise($this->errorMessage, $this->errorCode);
         }
     }
@@ -277,14 +421,14 @@ class Proxy
         rewind($handle);
 
         while (feof($handle) === false) {
-            echo fgets($handle, 4096);
+            echo fgets($handle, 131072);
         }
     }
 
     /**
      * Output JSONP callback with URL or data URI content
      *
-     * @param string $callback Set callback
+     * @param string $callback     Set callback
      * @throws \Inphinit\Exception
      * @throws \Exception
      * @return void
@@ -323,13 +467,9 @@ class Proxy
         rewind($handle);
 
         if ($binary) {
-            $crlf = '%0D%0A';
-
             while (feof($handle) === false) {
                 $raw = fread($handle, 8151);
-                $encoded = base64_encode($raw);
-                $encoded = chunk_split($encoded, 76, $crlf);
-                echo $encoded;
+                echo base64_encode($raw);
             }
         } else {
             while (feof($handle) === false) {
@@ -354,7 +494,7 @@ class Proxy
     }
 
     /**
-     * If last download was successful, content-type will be returned
+     * If last download was successful, Content-Type will be returned
      *
      * @return string|null
      */
@@ -374,26 +514,6 @@ class Proxy
     }
 
     /**
-     * If last download was failed, error code will be returned
-     *
-     * @return int|null
-     */
-    public function getLastErrorCode()
-    {
-        return $this->errorCode;
-    }
-
-    /**
-     * If last download was failed, error message will be returned
-     *
-     * @return string|null
-     */
-    public function getLastErrorMessage()
-    {
-        return $this->errorMessage;
-    }
-
-    /**
      * Reset last download
      *
      * @return void
@@ -401,15 +521,17 @@ class Proxy
     public function reset()
     {
         $this->contentType = null;
-        $this->httpStatus = null;
-        $this->errorCode = null;
-        $this->errorMessage = null;
         $this->hasResponse = false;
 
         if ($this->temporary) {
             ftruncate($this->temporary, 0);
             rewind($this->temporary);
         }
+    }
+
+    private function refreshOptions()
+    {
+        $this->options['update'] += 1;
     }
 
     private function httpCache()
@@ -442,11 +564,12 @@ class Proxy
                 $regex = implode('|', $urlList);
                 $regex = preg_quote($regex, '#');
                 $regex = strtr($regex, array(
-                    '\\*' => '\\w+',
+                    '\\*' => '[^/]+',
                     '\\|' => '|'
                 ));
 
                 $this->allowedUrlsRegEx = '#^(' . $regex . ')#';
+                var_dump($this->allowedUrlsRegEx);
             }
 
             if (!preg_match($this->allowedUrlsRegEx, $url)) {
@@ -459,9 +582,7 @@ class Proxy
 
     private function raise($message, $code = 0)
     {
-        $this->reset();
-
-        if ($this->core) {
+        if ($this->coreException) {
             throw new \Inphinit\Exception($message, $code, 3);
         } else {
             throw new \Exception($message, $code);

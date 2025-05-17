@@ -47,3 +47,4 @@ Temporary Items
 .idea/
 .vscode/
 cache/*
+/README.html

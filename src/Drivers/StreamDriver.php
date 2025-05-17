@@ -13,10 +13,10 @@ use Inphinit\Proxy\Proxy;
 
 class StreamDriver
 {
-    private $proxy;
-    private $lastUpdate = 0;
-    private $timeout = 30;
     private $context;
+    private $lastUpdate = 0;
+    private $proxy;
+    private $timeout = 30;
 
     /**
      * Create instace
@@ -57,12 +57,12 @@ class StreamDriver
         if ($this->context === null || $this->lastUpdate < $update) {
             $this->lastUpdate = $update;
 
-            $timeout = $this->proxy->getOptions('timeout');
+            $timeout = $this->proxy->getTimeout();
 
             $options = array(
                 'http' => array(
                     'follow_location' => true,
-                    'max_redirects' => $this->proxy->getOptions('max_redirs'),
+                    'max_redirects' => $this->proxy->getMaxRedirs(),
                     'timeout' => $timeout
                 )
             );
@@ -75,13 +75,13 @@ class StreamDriver
                 $options += $extra;
             }
 
-            $referer = $this->proxy->getOptions('referer');
+            $referer = $this->proxy->getReferer();
 
             if ($referer) {
                 $options['http']['referer'] = $referer;
             }
 
-            $userAgent = $this->proxy->getOptions('user_agent');
+            $userAgent = $this->proxy->getUserAgent();
 
             if ($userAgent) {
                 $options['http']['user_agent'] = $userAgent;
@@ -96,53 +96,65 @@ class StreamDriver
 
         $handle = fopen($url, 'rb', false, $this->context);
 
-        if ($handle) {
-            $temp = $this->proxy->getTemporary();
-            $timeout = $this->timeout;
-            $timedOut = false;
-            $start = microtime(true);
-
-            $meta_data = stream_get_meta_data($handle);
-
-            foreach ($meta_data['wrapper_data'] as $index => $header) {
-                if ($index === 0) {
-                    if (preg_match('#HTTP/\d+\.\d+\s+(\d+)#', $header, $match)) {
-                        $httpStatus = (int) $match;
-                    } else {
-                        $httpStatus = 0;
-                        $errorCode = 0;
-                        $errorMessage = 'Invalid response';
-                        break;
-                    }
-                } elseif (stripos($header, 'content-type:') === 0) {
-                    $contentType = substr($header, 13);
-                }
-            }
-
-            if ($httpStatus !== 0 && $httpStatus < 300) {
-                while (feof($handle) === false) {
-                    if ($timeout < (microtime(true) - $start)) {
-                        $timedOut = true;
-                        $errorCode = 0;
-                        $errorMessage = 'Connection timed out';
-                        break;
-                    }
-
-                    $data = fgets($handle, 4096);
-
-                    fwrite($temp, $data);
-                }
-            }
-
-            fclose($handle);
-
-            if ($timedOut) {
-                $this->proxy->resetTemporary();
-            }
-        } else {
+        if (!$handle) {
             $err = error_get_last();
             $errorCode = $err['type'];
             $errorMessage = $err['message'];
+            return false;
         }
+
+        $temp = $this->proxy->getTemporary();
+        $timeout = $this->timeout;
+        $timedOut = false;
+        $start = microtime(true);
+
+        $meta_data = stream_get_meta_data($handle);
+
+        foreach ($meta_data['wrapper_data'] as $index => $header) {
+            if ($index === 0) {
+                if (preg_match('#HTTP/\d+\.\d+\s+(\d+)#', $header, $match)) {
+                    $httpStatus = (int) $match[1];
+                } else {
+                    $errorCode = 0;
+                    $errorMessage = 'Invalid response';
+                    break;
+                }
+            } elseif (stripos($header, 'content-type:') === 0) {
+                $contentType = substr($header, 13);
+            }
+        }
+
+        if ($this->proxy->isAllowedType($contentType, $errorMessage) === false) {
+            $errorCode = 0;
+        } elseif ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
+            $errorCode = $httpStatus;
+        } else {
+            $downloaded = 0;
+            $maxSize = $this->proxy->getMaxDownloadSize();
+
+            while (feof($handle) === false) {
+                if ($timeout < (microtime(true) - $start)) {
+                    $errorCode = 0;
+                    $errorMessage = 'Connection timed out';
+                    break;
+                }
+
+                $data = fgets($handle, 131072);
+
+                $downloaded += strlen($downloaded);
+
+                if ($downloaded > $maxSize) {
+                    $errorCode = 0;
+                    $errorMessage = 'Download aborted because file size exceeded the maximum allowed';
+                    break;
+                }
+
+                fwrite($temp, $data);
+            }
+        }
+
+        fclose($handle);
+
+        return $errorCode === null;
     }
 }
