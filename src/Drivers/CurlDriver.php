@@ -128,7 +128,7 @@ class CurlDriver
 
         if ($code !== 0) {
             $errorCode = $code;
-            $errorMessage = $this->errorMessage ? $this->errorMessage : ('cURL: ' . curl_error($ch));
+            $errorMessage = $this->errorMessage ? $this->errorMessage : curl_error($ch);
 
             if ($this->httpStatus !== null) {
                 $httpStatus = $this->httpStatus;
@@ -146,6 +146,7 @@ class CurlDriver
     private function abort($downloaded)
     {
         if ($downloaded > $this->maxDownloadSize) {
+            $this->errorMessage = 'Download aborted because file size exceeded the maximum allowed';
             return 1;
         }
 

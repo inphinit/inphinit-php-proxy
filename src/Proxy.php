@@ -246,6 +246,11 @@ class Proxy
     public function isAllowedType($type, &$errorMessage = null)
     {
         $type = trim($type);
+        $pos = strpos($type, ';');
+
+        if ($pos > 0) {
+            $type = substr($type, 0, $pos);
+        }
 
         if (array_key_exists($type, $this->allowedTypes)) {
             return true;
@@ -568,8 +573,7 @@ class Proxy
                     '\\|' => '|'
                 ));
 
-                $this->allowedUrlsRegEx = '#^(' . $regex . ')#';
-                var_dump($this->allowedUrlsRegEx);
+                $this->allowedUrlsRegEx = '#^(' . $regex . ')#i';
             }
 
             if (!preg_match($this->allowedUrlsRegEx, $url)) {
