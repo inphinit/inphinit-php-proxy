@@ -96,11 +96,11 @@ class CurlDriver
             $this->maxDownloadSize = $this->proxy->getMaxDownloadSize();
 
             if (PHP_VERSION_ID < 50500) {
-                $progressCallback = function ($download_size, $downloaded, $upload_size, $uploaded) {
+                $progressCallback = function ($downloadSize, $downloaded, $uploadSize, $uploaded) {
                     return $this->abort($downloaded);
                 };
             } else {
-                $progressCallback = function ($resource, $download_size, $downloaded, $upload_size, $uploaded) {
+                $progressCallback = function ($resource, $downloadSize, $downloaded, $uploadSize, $uploaded) {
                     return $this->abort($downloaded);
                 };
             }

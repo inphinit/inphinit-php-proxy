@@ -141,7 +141,7 @@ class StreamDriver
 
                 $data = fgets($handle, 131072);
 
-                $downloaded += strlen($downloaded);
+                $downloaded += strlen($data);
 
                 if ($downloaded > $maxSize) {
                     $errorCode = 0;
