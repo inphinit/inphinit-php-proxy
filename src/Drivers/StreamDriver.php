@@ -96,7 +96,7 @@ class StreamDriver
 
         $handle = fopen($url, 'rb', false, $this->context);
 
-        if (!$handle) {
+        if ($handle === false) {
             $err = error_get_last();
             $errorCode = $err['type'];
             $errorMessage = $err['message'];

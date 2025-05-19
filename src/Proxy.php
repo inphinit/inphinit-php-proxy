@@ -282,7 +282,7 @@ class Proxy
 
         $temp = fopen($path, 'rb+');
 
-        if (!$temp) {
+        if ($temp === false) {
             $this->raise('Failed to open: ' . $path);
         }
 
@@ -361,7 +361,7 @@ class Proxy
 
             $this->contentType = $contentType;
 
-            if ($httpStatus < 200 || $httpStatus >= 300) {
+            if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
                 $success = false;
 
                 $this->errorCode = $httpStatus;
@@ -413,13 +413,7 @@ class Proxy
             $this->raise('No downloads yet');
         }
 
-        header('Access-Control-Allow-Headers: *');
-        header('Access-Control-Allow-Methods: OPTIONS, GET');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Request-Method: *');
-        header('Content-type: ' . $this->contentType);
-
-        $this->httpCache();
+        $this->sendHeaders($this->contentType);
 
         $handle = $this->temporary;
 
@@ -444,9 +438,7 @@ class Proxy
             $this->raise('No downloads yet');
         }
 
-        header('Content-type: application/javascript');
-
-        $this->httpCache();
+        $this->sendHeaders('application/javascript');
 
         $contentType = $this->contentType;
         $extra = null;
@@ -539,8 +531,13 @@ class Proxy
         $this->options['update'] += 1;
     }
 
-    private function httpCache()
+    private function sendHeaders($contentType)
     {
+        header('Access-Control-Allow-Headers: *');
+        header('Access-Control-Allow-Methods: OPTIONS, GET');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Request-Method: *');
+
         $seconds = $this->responseCacheTime;
 
         if ($seconds > 0) {
@@ -558,6 +555,7 @@ class Proxy
         }
 
         header('Expires: ' . $datetime .' GMT');
+        header('Content-type: ' . $contentType);
     }
 
     private function validateUrl($url)
@@ -573,10 +571,10 @@ class Proxy
                     '\\|' => '|'
                 ));
 
-                $this->allowedUrlsRegEx = '#^(' . $regex . ')#i';
+                $this->allowedUrlsRegEx = '#^(' . $regex . ')#';
             }
 
-            if (!preg_match($this->allowedUrlsRegEx, $url)) {
+            if (preg_match($this->allowedUrlsRegEx, $url) !== 1) {
                 return false;
             }
         }
