@@ -119,7 +119,7 @@ class Proxy
     }
 
     /**
-     * Set connection timeout
+     * Set the connection timeout in seconds
      *
      * @param int $value
      * @return void
@@ -131,7 +131,7 @@ class Proxy
     }
 
     /**
-     * Get connection timeout
+     * Get the connection timeout in seconds
      *
      * @return int
      */
@@ -163,9 +163,9 @@ class Proxy
     }
 
     /**
-     * Set drivers used to download the resource
+     * Set the list of driver class names used for downloading resources
      *
-     * @param array $drivers Set drivers
+     * @param array $drivers
      * @return void
      */
     public function setDrivers(array $drivers)
@@ -203,7 +203,7 @@ class Proxy
     }
 
     /**
-     * Set allowed URLs
+     * Set the list of allowed URLs for download
      *
      * @param array $urls
      * @return void
@@ -215,7 +215,7 @@ class Proxy
     }
 
     /**
-     * Add Content-Type to the allowed list
+     * Add a Content-Type to the allowed list
      *
      * @param string $type
      * @param string $binary
@@ -227,7 +227,7 @@ class Proxy
     }
 
     /**
-     * Remove Content-Type from the allowed list
+     * Remove a Content-Type from the allowed list
      *
      * @param string $type
      * @return void
@@ -238,7 +238,7 @@ class Proxy
     }
 
     /**
-     * Check if Content-Type is allowed
+     * Check if a given Content-Type is allowed
      *
      * @param string $type
      * @return void
@@ -262,7 +262,7 @@ class Proxy
     }
 
     /**
-     * Set temporary handle path, eg.: /mnt/storage/, php://temp, php://memory
+     * Set the temporary storage path or stream for downloaded content, eg.: /mnt/storage/, php://temp, php://memory
      *
      * @param string $path
      * @throws \Inphinit\Exception
@@ -290,9 +290,9 @@ class Proxy
     }
 
     /**
-     * Get temporary stream
+     * Get the temporary stream resource used for downloaded content
      *
-     * @return resource
+     * @return resource|null
      */
     public function getTemporary()
     {
@@ -300,7 +300,7 @@ class Proxy
     }
 
     /**
-     * Perform download
+     * Perform the download
      *
      * @param string $url          Set URL for download
      * @throws \Inphinit\Exception
@@ -390,7 +390,7 @@ class Proxy
     }
 
     /**
-     * Enable or disable cache for Proxy::respose() or Proxy::jsonp()
+     * Set the cache duration (in seconds) or disable cache for Proxy::respose() or Proxy::jsonp()
      *
      * @param int $seconds Set seconds
      * @return void
@@ -436,6 +436,10 @@ class Proxy
     {
         if ($this->hasResponse === false) {
             $this->raise('No downloads yet');
+        }
+
+        if (preg_match('#^[$_a-z][\w$]*$#i', $callback) !== 1) {
+            $this->raise('Invalid callback name');
         }
 
         $this->sendHeaders('application/javascript');

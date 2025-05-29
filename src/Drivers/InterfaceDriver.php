@@ -14,9 +14,9 @@ use Inphinit\Proxy\Proxy;
 interface InterfaceDriver
 {
     /**
-     * Create instace
+     * Constructor
      *
-     * @param \Inphinit\Proxy\Proxy $proxy
+     * @param \Inphinit\Proxy\Proxy $proxy Instance of the Proxy using this driver
      * @return void
      */
     public function __construct(Proxy $proxy);
@@ -24,19 +24,19 @@ interface InterfaceDriver
     /**
      * Check if the driver is available
      *
-     * @return bool
+     * @return bool True if the driver can be used, false otherwise
      */
     public function available();
 
     /**
      * Execute download
      *
-     * @param string $url
-     * @param int    $httpStatus
-     * @param string $contentType
-     * @param int    $errorCode
-     * @param string $errorMessage
-     * @return bool
+     * @param string $url          URL of the resource to download
+     * @param int    $httpStatus   HTTP status code of the response
+     * @param string $contentType  Content-Type of the response
+     * @param int    $errorCode    Error code if any error occurred
+     * @param string $errorMessage Error message if any error occurre
+     * @return bool                True on success, false on failure
      */
     public function exec($url, &$httpStatus, &$contentType, &$errorCode, &$errorMessage);
 }
