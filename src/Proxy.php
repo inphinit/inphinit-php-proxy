@@ -184,14 +184,14 @@ class Proxy
     /**
      * Set the Access-Control-Allow-Origin header
      *
-     * @param string|null $origin
+     * @param string $origin
      * @throws \Inphinit\Exception
      * @throws \Exception
      * @return void
      */
     public function setControlAllowOrigin($origin)
     {
-        if ($origin !== '*' && preg_match('#^https?://[^\n]+$#', $origin) !== 1) {
+        if ($origin !== '*' && preg_match('#^https?://.*$#', $origin) !== 1) {
             $this->raise('Invalid origin');
         }
 
@@ -576,14 +576,8 @@ class Proxy
         header('Access-Control-Allow-Credentials: true');
 
         if ($this->controlAllowOrigin) {
-            $origin = $this->controlAllowOrigin;
-        } elseif (isset($_SERVER['HTTP_ORIGIN'])) {
-            $origin = $_SERVER['HTTP_ORIGIN'];
-        } else {
-            $origin = '*';
+            header('Access-Control-Allow-Origin: ' . $this->controlAllowOrigin);
         }
-
-        header('Access-Control-Allow-Origin: ' . $origin);
 
         if ($this->controlAllowHeaders) {
             header('Access-Control-Allow-Headers: ' . implode(', ', $this->controlAllowHeaders));
