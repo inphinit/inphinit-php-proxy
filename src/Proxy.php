@@ -36,6 +36,14 @@ class Proxy
         'image/svg-xml' => false // Support for old web servers (an old bug)
     ];
 
+    private $controlAllowOrigin = '';
+    private $controlAllowHeaders = [
+        'Authorization',
+        'Content-Type',
+        'Upgrade-Insecure-Requests',
+        'X-Requested-With'
+    ];
+
     private $contentType;
     private $httpStatus;
     private $errorCode;
@@ -171,6 +179,34 @@ class Proxy
     public function setDrivers(array $drivers)
     {
         $this->drivers = $drivers;
+    }
+
+    /**
+     * Set the Access-Control-Allow-Origin header
+     *
+     * @param string|null $origin
+     * @throws \Inphinit\Exception
+     * @throws \Exception
+     * @return void
+     */
+    public function setControlAllowOrigin($origin)
+    {
+        if ($origin !== '*' && preg_match('#^https?://[^\n]+$#', $origin) !== 1) {
+            $this->raise('Invalid origin');
+        }
+
+        $this->controlAllowOrigin = $origin;
+    }
+
+    /**
+     * Set the list of allowed headers
+     *
+     * @param array $headers
+     * @return void
+     */
+    public function setControlAllowHeaders(array $headers)
+    {
+        $this->controlAllowHeaders = $headers;
     }
 
     /**
@@ -420,7 +456,7 @@ class Proxy
         rewind($handle);
 
         while (feof($handle) === false) {
-            echo fgets($handle, 131072);
+            echo fread($handle, 131072);
         }
     }
 
@@ -537,28 +573,39 @@ class Proxy
 
     private function sendHeaders($contentType)
     {
-        header('Access-Control-Allow-Headers: *');
-        header('Access-Control-Allow-Methods: OPTIONS, GET');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Request-Method: *');
+        header('Access-Control-Allow-Credentials: true');
 
-        $seconds = $this->responseCacheTime;
-
-        if ($seconds > 0) {
-            $datetime = gmdate('D, d M Y H:i:s');
-
-            header('Access-Control-Max-Age:' . $seconds);
-            header('Cache-Control: max-age=' . $seconds);
-            header('Last-Modified: ' . $datetime . ' GMT');
-            header('Pragma: max-age=' . $seconds);
+        if ($this->controlAllowOrigin) {
+            $origin = $this->controlAllowOrigin;
+        } elseif (isset($_SERVER['HTTP_ORIGIN'])) {
+            $origin = $_SERVER['HTTP_ORIGIN'];
         } else {
-            $datetime = gmdate('D, d M Y H:i:s', time() + $seconds);
-
-            header('Cache-Control: no-cache');
-            header('Pragma: no-cache');
+            $origin = '*';
         }
 
-        header('Expires: ' . $datetime .' GMT');
+        header('Access-Control-Allow-Origin: ' . $origin);
+
+        if ($this->controlAllowHeaders) {
+            header('Access-Control-Allow-Headers: ' . implode(', ', $this->controlAllowHeaders));
+        }
+
+        header('Access-Control-Allow-Methods: OPTIONS, GET');
+
+        $seconds = $this->responseCacheTime;
+        $time = time();
+
+        if ($seconds > 0) {
+            header('Access-Control-Max-Age:' . $seconds);
+            header('Cache-Control: public, max-age=' . $seconds);
+            $date = gmdate('D, d M Y H:i:s', $time + $seconds);
+        } else {
+            header('Cache-Control: no-store, no-cache, must-revalidate');
+            header('Pragma: no-cache');
+            $date = gmdate('D, d M Y H:i:s');
+        }
+
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $time) . ' GMT');
+        header('Expires: ' . $date . ' GMT');
         header('Content-type: ' . $contentType);
     }
 
