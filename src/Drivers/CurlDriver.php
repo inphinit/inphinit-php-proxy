@@ -165,4 +165,11 @@ class CurlDriver
 
         return 0;
     }
+
+    public function __destruct()
+    {
+        if ($this->handle) {
+            curl_close($this->handle);
+        }
+    }
 }
