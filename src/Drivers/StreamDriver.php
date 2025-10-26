@@ -52,6 +52,8 @@ class StreamDriver
      */
     public function exec($url, &$httpStatus, &$contentType, &$errorCode, &$errorMessage)
     {
+        $httpStatus = null;
+        $contentType = '';
         $errorCode = 0;
         $errorMessage = null;
         $update = $this->proxy->getOptionsUpdate();
@@ -59,23 +61,16 @@ class StreamDriver
         if ($this->context === null || $this->update !== $update) {
             $this->update = $update;
 
-            $timeout = $this->proxy->getTimeout();
+            $this->timeout = $this->proxy->getTimeout();
 
             $options = array(
                 'http' => array(
                     'follow_location' => true,
+                    'ignore_errors' => true,
                     'max_redirects' => $this->proxy->getMaxRedirs(),
-                    'timeout' => $timeout
+                    'timeout' => $this->timeout
                 )
             );
-
-            $this->timeout = $timeout;
-
-            $extra = $this->proxy->getOptions('stream');
-
-            if ($extra) {
-                $options += $extra;
-            }
 
             $referer = $this->proxy->getReferer();
 
@@ -93,41 +88,50 @@ class StreamDriver
                 $options['http']['method'] = 'GET';
             }
 
+            $extra = $this->proxy->getOptions('stream');
+
+            // Adds other contexts like Socket, SSL and notification.
+            if ($extra) {
+                $options += $extra;
+            }
+
+            // Adds extra settings to the HTTP context without changing important settings.
+            if (isset($extra['http'])) {
+                $options['http'] += $extra['http'];
+            }
+
             $this->context = stream_context_create($options);
         }
 
         $handle = fopen($url, 'rb', false, $this->context);
 
-        if ($handle) {
-            $meta_data = stream_get_meta_data($handle);
-
-            foreach ($meta_data['wrapper_data'] as $index => $header) {
-                if ($index === 0) {
-                    if (preg_match('#HTTP/\d+\.\d+\s+(\d+)#', $header, $match)) {
-                        $httpStatus = (int) $match[1];
-                    } else {
-                        $errorCode = 0;
-                        $errorMessage = 'Invalid response';
-                        break;
-                    }
-                } elseif (stripos($header, 'content-type:') === 0) {
-                    $contentType = substr($header, 13);
-                }
-            }
-        } else {
+        if ($handle === false) {
             $err = error_get_last();
             $errorCode = $err['type'];
             $errorMessage = $err['message'];
+            return false;
+        }
 
-            if (preg_match('#Failed to open stream\: HTTP request failed! HTTP\/\d\.\d (\d+)\s#i', $errorMessage, $match)) {
-                $httpStatus = (int) $match[1];
+        $meta_data = stream_get_meta_data($handle);
+
+        foreach ($meta_data['wrapper_data'] as $index => $header) {
+            if ($index === 0) {
+                if (preg_match('#HTTP/\d+\.\d+\s+(\d+)#', $header, $match)) {
+                    $httpStatus = (int) $match[1];
+                } else {
+                    $errorCode = 0;
+                    $errorMessage = 'Invalid response';
+                    break;
+                }
+            } elseif (stripos($header, 'content-type:') === 0) {
+                $contentType = substr($header, 13);
             }
         }
 
         if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
             $errorCode = $httpStatus;
             $errorMessage = '';
-        } elseif (!$contentType || $this->proxy->isAllowedType($contentType, $errorMessage) === false) {
+        } elseif ($this->proxy->isAllowedType($contentType, $errorMessage) === false) {
             $errorCode = 0;
         } else {
             $downloaded = 0;
@@ -143,7 +147,7 @@ class StreamDriver
                     break;
                 }
 
-                $data = fgets($handle, 131072);
+                $data = fread($handle, 131072);
 
                 $downloaded += strlen($data);
 
@@ -155,9 +159,9 @@ class StreamDriver
 
                 fwrite($temp, $data);
             }
-
-            fclose($handle);
         }
+
+        fclose($handle);
 
         return $errorMessage === null;
     }
