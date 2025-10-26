@@ -152,14 +152,18 @@ class CurlDriver
 
         $code = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
 
-        if ($code >= 100 && ($code < 200 || $code >= 300)) {
+        if ($code >= 100 && ($code < 200 || $code >= 400)) {
             $this->httpStatus = $code;
             return 1;
         }
 
         $contentType = curl_getinfo($this->handle, CURLINFO_CONTENT_TYPE);
 
-        return $contentType === false || $this->proxy->isAllowedType($contentType, $this->errorMessage) ? 0 : 1;
+        if ($code < 300 && $contentType) {
+            return $this->proxy->isAllowedType($contentType, $this->errorMessage) ? 0 : 1;
+        }
+
+        return 0;
     }
 
     public function __destruct()
