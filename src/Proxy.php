@@ -18,9 +18,8 @@ class Proxy
     private $userAgent;
 
     private $temporary;
-    private $options = [
-        'update' => 0
-    ];
+    private $options = [];
+    private $optionsUpdate = 1;
     private $driver;
     private $drivers = [];
     private $allowedUrls = [];
@@ -69,7 +68,7 @@ class Proxy
     public function setMaxDownloadSize($value)
     {
         $this->maxDownloadSize = $value;
-        $this->refreshOptions();
+        $this->refreshOptionsUpdate();
     }
 
     /**
@@ -91,7 +90,7 @@ class Proxy
     public function setMaxRedirs($value)
     {
         $this->maxRedirs = $value;
-        $this->refreshOptions();
+        $this->refreshOptionsUpdate();
     }
 
     /**
@@ -113,7 +112,7 @@ class Proxy
     public function setReferer($value)
     {
         $this->referer = $value;
-        $this->refreshOptions();
+        $this->refreshOptionsUpdate();
     }
 
     /**
@@ -135,7 +134,7 @@ class Proxy
     public function setTimeout($value)
     {
         $this->timeout = $value;
-        $this->refreshOptions();
+        $this->refreshOptionsUpdate();
     }
 
     /**
@@ -157,7 +156,7 @@ class Proxy
     public function setUserAgent($value)
     {
         $this->userAgent = $value;
-        $this->refreshOptions();
+        $this->refreshOptionsUpdate();
     }
 
     /**
@@ -219,7 +218,7 @@ class Proxy
     public function setOptions($key, $value)
     {
         $this->options[$key] = $value;
-        $this->refreshOptions();
+        $this->refreshOptionsUpdate();
     }
 
     /**
@@ -236,6 +235,16 @@ class Proxy
         }
 
         return isset($this->options[$key]) ? $this->options[$key] : null;
+    }
+
+    /**
+     * Gets the update value (incremental), used by drivers to check if they need to reconfigure something.
+     *
+     * @return int
+     */
+    public function getOptionsUpdate()
+    {
+        return $this->optionsUpdate;
     }
 
     /**
@@ -402,10 +411,11 @@ class Proxy
                 $success = false;
 
                 $this->errorCode = $httpStatus;
-                $this->errorMessage = 'HTTP error: ' . $httpStatus;
 
                 if ($this->coreHttpStatus) {
                     $this->errorMessage = Status::message($httpStatus, $this->errorMessage);
+                } else {
+                    $this->errorMessage = 'HTTP error: ' . $httpStatus;
                 }
             } elseif ($this->isAllowedType($contentType, $this->errorMessage) === false) {
                 $success = false;
@@ -567,9 +577,9 @@ class Proxy
         }
     }
 
-    private function refreshOptions()
+    private function refreshOptionsUpdate()
     {
-        $this->options['update'] += 1;
+        $this->optionsUpdate += 1;
     }
 
     private function sendHeaders($contentType)

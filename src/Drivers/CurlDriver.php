@@ -16,9 +16,9 @@ class CurlDriver
     private $errorMessage;
     private $handle;
     private $httpStatus;
-    private $lastUpdate = 0;
     private $maxDownloadSize;
     private $proxy;
+    private $update = 0;
 
     /**
      * Create instace
@@ -53,7 +53,7 @@ class CurlDriver
      */
     public function exec($url, &$httpStatus, &$contentType, &$errorCode, &$errorMessage)
     {
-        $update = $this->proxy->getOptions('update');
+        $update = $this->proxy->getOptionsUpdate();
 
         if ($this->handle === null || $this->lastUpdate < $update) {
             $this->lastUpdate = $update;
@@ -64,7 +64,7 @@ class CurlDriver
             $timeout = $this->proxy->getTimeout();
 
             $options = array(
-                CURLOPT_CONNECTTIMEOUT => $timeout,
+                CURLOPT_TIMEOUT => $timeout,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_HEADER => false,
                 CURLOPT_MAXREDIRS => $this->proxy->getMaxRedirs(),
@@ -110,7 +110,7 @@ class CurlDriver
             $temp = $this->proxy->getTemporary();
 
             if (defined('CURLOPT_WRITEFUNCTION')) {
-                curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (&$temp) {
+                curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($resource, $data) use ($temp) {
                     return fwrite($temp, $data);
                 });
             } else {
@@ -159,11 +159,7 @@ class CurlDriver
 
         $contentType = curl_getinfo($this->handle, CURLINFO_CONTENT_TYPE);
 
-        if ($contentType && $this->proxy->isAllowedType($contentType, $this->errorMessage) === false) {
-            return 1;
-        }
-
-        return 0;
+        return $contentType === false || $this->proxy->isAllowedType($contentType, $this->errorMessage) ? 0 : 1;
     }
 
     public function __destruct()

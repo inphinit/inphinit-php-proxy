@@ -14,9 +14,9 @@ use Inphinit\Proxy\Proxy;
 class StreamDriver
 {
     private $context;
-    private $lastUpdate = 0;
     private $proxy;
     private $timeout = 30;
+    private $update = 0;
 
     /**
      * Create instace
@@ -52,10 +52,12 @@ class StreamDriver
      */
     public function exec($url, &$httpStatus, &$contentType, &$errorCode, &$errorMessage)
     {
-        $update = $this->proxy->getOptions('update');
+        $errorCode = 0;
+        $errorMessage = null;
+        $update = $this->proxy->getOptionsUpdate();
 
-        if ($this->context === null || $this->lastUpdate < $update) {
-            $this->lastUpdate = $update;
+        if ($this->context === null || $this->update !== $update) {
+            $this->update = $update;
 
             $timeout = $this->proxy->getTimeout();
 
@@ -96,41 +98,43 @@ class StreamDriver
 
         $handle = fopen($url, 'rb', false, $this->context);
 
-        if ($handle === false) {
+        if ($handle) {
+            $meta_data = stream_get_meta_data($handle);
+
+            foreach ($meta_data['wrapper_data'] as $index => $header) {
+                if ($index === 0) {
+                    if (preg_match('#HTTP/\d+\.\d+\s+(\d+)#', $header, $match)) {
+                        $httpStatus = (int) $match[1];
+                    } else {
+                        $errorCode = 0;
+                        $errorMessage = 'Invalid response';
+                        break;
+                    }
+                } elseif (stripos($header, 'content-type:') === 0) {
+                    $contentType = substr($header, 13);
+                }
+            }
+        } else {
             $err = error_get_last();
             $errorCode = $err['type'];
             $errorMessage = $err['message'];
-            return false;
-        }
 
-        $temp = $this->proxy->getTemporary();
-        $timeout = $this->timeout;
-        $timedOut = false;
-        $start = microtime(true);
-
-        $meta_data = stream_get_meta_data($handle);
-
-        foreach ($meta_data['wrapper_data'] as $index => $header) {
-            if ($index === 0) {
-                if (preg_match('#HTTP/\d+\.\d+\s+(\d+)#', $header, $match)) {
-                    $httpStatus = (int) $match[1];
-                } else {
-                    $errorCode = 0;
-                    $errorMessage = 'Invalid response';
-                    break;
-                }
-            } elseif (stripos($header, 'content-type:') === 0) {
-                $contentType = substr($header, 13);
+            if (preg_match('#Failed to open stream\: HTTP request failed! HTTP\/\d\.\d (\d+)\s#i', $errorMessage, $match)) {
+                $httpStatus = (int) $match[1];
             }
         }
 
-        if (!$contentType || $this->proxy->isAllowedType($contentType, $errorMessage) === false) {
-            $errorCode = 0;
-        } elseif ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
+        if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
             $errorCode = $httpStatus;
+            $errorMessage = '';
+        } elseif (!$contentType || $this->proxy->isAllowedType($contentType, $errorMessage) === false) {
+            $errorCode = 0;
         } else {
             $downloaded = 0;
             $maxSize = $this->proxy->getMaxDownloadSize();
+            $start = microtime(true);
+            $temp = $this->proxy->getTemporary();
+            $timeout = $this->timeout;
 
             while (feof($handle) === false) {
                 if ($timeout < (microtime(true) - $start)) {
@@ -151,10 +155,10 @@ class StreamDriver
 
                 fwrite($temp, $data);
             }
+
+            fclose($handle);
         }
 
-        fclose($handle);
-
-        return $errorCode === null;
+        return $errorMessage === null;
     }
 }

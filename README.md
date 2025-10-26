@@ -98,6 +98,7 @@ Method | Description
 `setControlAllowHeaders(array $headers): void` | Set the list of allowed headers
 `setOptions(string $key, mixed $value): void` | Set generic options
 `getOptions([string $key]): mixed` | Get generic options
+`getOptionsUpdate(): int` | Gets the update value (incremental), used by drivers to check if they need to be reconfigured
 `setAllowedUrls(array $urls): void` | Set the list of allowed URLs for download
 `addAllowedType(string $type, string $binary): void` | Add a Content-Type to the allowed list
 `removeAllowedType(string $type): void` | Remove a Content-Type from the allowed list
