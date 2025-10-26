@@ -124,7 +124,7 @@ class StreamDriver
             }
         }
 
-        if ($this->proxy->isAllowedType($contentType, $errorMessage) === false) {
+        if (!$contentType || $this->proxy->isAllowedType($contentType, $errorMessage) === false) {
             $errorCode = 0;
         } elseif ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
             $errorCode = $httpStatus;

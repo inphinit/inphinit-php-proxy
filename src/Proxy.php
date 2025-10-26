@@ -274,10 +274,11 @@ class Proxy
     }
 
     /**
-     * Check if a given Content-Type is allowed
+     * Check if a given Content-Type is allowed (this method will be used by drivers)
      *
      * @param string $type
-     * @return void
+     * @param string $errorMessage
+     * @return bool
      */
     public function isAllowedType($type, &$errorMessage = null)
     {

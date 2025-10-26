@@ -89,28 +89,28 @@ Method | Description
 `getMaxRedirs(): int` | Get the maximum number of HTTP redirects
 `setReferer(string $value): void` | Set the Referer request header
 `getReferer(): string` | Get the Referer request header
-`setTimeout(int $value): void` | Set connection timeout
-`getTimeout(): int` | Get connection timeout
+`setTimeout(int $value): void` | Set the connection timeout in seconds
+`getTimeout(): int` | Get the connection timeout in seconds
 `setUserAgent(string $value): void` | Set the User-Agent request header
 `getUserAgent(): string` | Get the User-Agent request header
-`setDrivers(array $drivers): void` | Set drivers used to download the resource
+`setDrivers(array $drivers): void` | Set the list of driver class names used for downloading resources
+`setControlAllowOrigin(string $origin): void` | Set the Access-Control-Allow-Origin header
+`setControlAllowHeaders(array $headers): void` | Set the list of allowed headers
 `setOptions(string $key, mixed $value): void` | Set generic options
 `getOptions([string $key]): mixed` | Get generic options
-`setAllowedUrls(array $urls): void` | Set allowed URLs
-`addAllowedType(string $type, bool $binary): void` | Add Content-Type to the allowed list
-`removeAllowedType(string $type): void` | Remove Content-Type from the allowed list
-`isAllowedType(string $type[, string &$errorMessage])` | Check if Content-Type is allowed
-`setTemporary(string $path): void` | Sets temporary handle path, eg.: `/mnt/storage/`, `php://temp`, `php://memory`
-`getTemporary(): resource` | Get temporary stream
-`download(string $url[, bool $ignoreDownloadError]): void` | Perform download
-`setResponseCacheTime(int $seconds): void` | Enable or disable cache for `Proxy::respose()` or `Proxy::jsonp()`
+`setAllowedUrls(array $urls): void` | Set the list of allowed URLs for download
+`addAllowedType(string $type, string $binary): void` | Add a Content-Type to the allowed list
+`removeAllowedType(string $type): void` | Remove a Content-Type from the allowed list
+`isAllowedType(string $type, string &$errorMessage): bool` | Check if a given Content-Type is allowed (this method will be used by drivers)
+`setTemporary(string $path): void` | Set the temporary storage path or stream for downloaded content, eg.: `/mnt/storage/`, `php://temp`, `php://memory`.
+`getTemporary(): resource\|null` | Get the temporary stream resource used for downloaded content
+`download(string $url): bool` | Perform the download
+`setResponseCacheTime(int $seconds): void` | Set the cache duration (in seconds) or disable cache for `Proxy::respose()` or `Proxy::jsonp()`
 `response(): void` | Dump response to output
-`jsonp(string $callback): void` | Output JSONP callback with URL or data URI content
-`getContents([int $length[, int $offset]]): string` | If last download was successful, contents will be returned
-`getContentType(): string` | If last download was successful, Content-Type will be returned
-`getHttpStatus(): int` | If last download was successful, HTTP status will be returned
-`getErrorCode(): int` | If last download was failed, error code will be returned
-`getErrorMessage(): string` | If last download was failed, error message will be returned
+`jsonp($callback): void` | Output JSONP callback with URL or data URI content
+`getContents([int $length[, int $offset]]): string\|null` | If last download was successful, contents will be returned
+`getContentType(): string\|null` | If last download was successful, Content-Type will be returned
+`getHttpStatus(): int\|null` | If last download was successful, HTTP status will be returned
 `reset(): void` | Reset last download
 
 ## Generic options
