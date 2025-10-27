@@ -534,11 +534,11 @@ class Proxy
      *
      * @param int $length Optional. The maximum bytes to read.
      * @param int $offset Optional. Seek to the specified offset before reading.
-     * @return string|null
+     * @return string|false
      */
     public function getContents($length = -1, $offset = -1)
     {
-        return $this->temporary ? stream_get_contents($this->temporary, $length, $offset) : '';
+        return $this->temporary ? stream_get_contents($this->temporary, $length, $offset) : false;
     }
 
     /**

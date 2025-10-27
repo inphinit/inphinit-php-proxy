@@ -103,6 +103,7 @@ class StreamDriver
             $this->context = stream_context_create($options);
         }
 
+        $start = microtime(true);
         $handle = fopen($url, 'rb', false, $this->context);
 
         if ($handle === false) {
@@ -136,7 +137,6 @@ class StreamDriver
         } else {
             $downloaded = 0;
             $maxSize = $this->proxy->getMaxDownloadSize();
-            $start = microtime(true);
             $temp = $this->proxy->getTemporary();
             $timeout = $this->timeout;
 
