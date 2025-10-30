@@ -52,10 +52,10 @@ class StreamDriver
      */
     public function exec($url, &$httpStatus, &$contentType, &$errorCode, &$errorMessage)
     {
-        $httpStatus = null;
         $contentType = '';
         $errorCode = 0;
         $errorMessage = null;
+        $httpStatus = null;
         $update = $this->proxy->getOptionsUpdate();
 
         if ($this->context === null || $this->update !== $update) {
@@ -120,7 +120,6 @@ class StreamDriver
                 if (preg_match('#HTTP/\d+\.\d+\s+(\d+)#', $header, $match)) {
                     $httpStatus = (int) $match[1];
                 } else {
-                    $errorCode = 0;
                     $errorMessage = 'Invalid response';
                     break;
                 }
@@ -130,11 +129,8 @@ class StreamDriver
         }
 
         if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
-            $errorCode = $httpStatus;
             $errorMessage = '';
-        } elseif ($this->proxy->isAllowedType($contentType, $errorMessage) === false) {
-            $errorCode = 0;
-        } else {
+        } elseif ($errorMessage === null && $this->proxy->isAllowedType($contentType, $errorMessage)) {
             $downloaded = 0;
             $maxSize = $this->proxy->getMaxDownloadSize();
             $temp = $this->proxy->getTemporary();
@@ -142,7 +138,6 @@ class StreamDriver
 
             while (feof($handle) === false) {
                 if ($timeout < (microtime(true) - $start)) {
-                    $errorCode = 0;
                     $errorMessage = 'Connection timed out';
                     break;
                 }
@@ -152,7 +147,6 @@ class StreamDriver
                 $downloaded += strlen($data);
 
                 if ($downloaded > $maxSize) {
-                    $errorCode = 0;
                     $errorMessage = 'Download aborted because file size exceeded the maximum allowed';
                     break;
                 }

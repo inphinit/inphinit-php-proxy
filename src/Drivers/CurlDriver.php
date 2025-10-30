@@ -124,10 +124,9 @@ class CurlDriver
 
         curl_exec($ch);
 
-        $code = curl_errno($ch);
+        $errorCode = curl_errno($ch);
 
-        if ($code !== 0) {
-            $errorCode = $code;
+        if ($errorCode !== 0) {
             $errorMessage = $this->errorMessage ? $this->errorMessage : curl_error($ch);
 
             if ($this->httpStatus !== null) {
@@ -150,16 +149,16 @@ class CurlDriver
             return 1;
         }
 
-        $code = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
+        $httpCode = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
 
-        if ($code >= 100 && ($code < 200 || $code >= 400)) {
-            $this->httpStatus = $code;
+        if ($httpCode >= 100 && ($httpCode < 200 || $httpCode >= 400)) {
+            $this->httpStatus = $httpCode;
             return 1;
         }
 
         $contentType = curl_getinfo($this->handle, CURLINFO_CONTENT_TYPE);
 
-        if ($code < 300 && $contentType) {
+        if ($httpCode < 300 && $contentType) {
             return $this->proxy->isAllowedType($contentType, $this->errorMessage) ? 0 : 1;
         }
 
