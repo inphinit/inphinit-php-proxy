@@ -397,29 +397,29 @@ class Proxy
 
         $success = $this->driver->exec($url, $this->httpStatus, $this->contentType, $this->errorCode, $this->errorMessage);
 
-        if ($success) {
-            $httpStatus = $this->httpStatus;
-            $contentType = $this->contentType;
+        $httpStatus = $this->httpStatus;
+        $contentType = $this->contentType;
 
+        if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
+            $this->errorCode = $httpStatus;
+
+            if ($this->coreHttpStatus) {
+                $this->errorMessage = Status::message($httpStatus, $this->errorMessage);
+            } else {
+                $this->errorMessage = 'HTTP error: ' . $httpStatus;
+            }
+
+            $success = false;
+        } elseif ($success) {
             if ($contentType) {
                 $contentType = trim($contentType);
             }
 
             $this->contentType = $contentType;
 
-            if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
-                $success = false;
-
-                $this->errorCode = $httpStatus;
-
-                if ($this->coreHttpStatus) {
-                    $this->errorMessage = Status::message($httpStatus, $this->errorMessage);
-                } else {
-                    $this->errorMessage = 'HTTP error: ' . $httpStatus;
-                }
-            } elseif ($this->isAllowedType($contentType, $this->errorMessage) === false) {
-                $success = false;
+            if ($this->isAllowedType($contentType, $this->errorMessage) === false) {
                 $this->errorCode = 0;
+                $success = false;
             }
         }
 
