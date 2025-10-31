@@ -14,9 +14,9 @@ use Inphinit\Proxy\Proxy;
 class StreamDriver
 {
     private $context;
+    private $lastUpdate = 0;
     private $proxy;
     private $timeout = 30;
-    private $update = 0;
 
     /**
      * Create instace
@@ -58,19 +58,19 @@ class StreamDriver
         $httpStatus = null;
         $update = $this->proxy->getOptionsUpdate();
 
-        if ($this->context === null || $this->update !== $update) {
-            $this->update = $update;
+        if ($this->context === null || $this->lastUpdate !== $update) {
+            $this->lastUpdate = $update;
 
             $this->timeout = $this->proxy->getTimeout();
 
-            $options = array(
-                'http' => array(
+            $options = [
+                'http' => [
                     'follow_location' => true,
                     'ignore_errors' => true,
                     'max_redirects' => $this->proxy->getMaxRedirs(),
                     'timeout' => $this->timeout
-                )
-            );
+                ]
+            ];
 
             $referer = $this->proxy->getReferer();
 
@@ -137,7 +137,7 @@ class StreamDriver
             $timeout = $this->timeout;
 
             while (feof($handle) === false) {
-                if ($timeout < (microtime(true) - $start)) {
+                if ((microtime(true) - $start) > $timeout) {
                     $errorMessage = 'Connection timed out';
                     break;
                 }
@@ -151,7 +151,10 @@ class StreamDriver
                     break;
                 }
 
-                fwrite($temp, $data);
+                if (fwrite($temp, $data) === false) {
+                    $errorMessage = 'Failed to write to temporary storage';
+                    break;
+                }
             }
         }
 

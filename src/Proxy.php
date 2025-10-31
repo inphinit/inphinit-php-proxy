@@ -263,12 +263,16 @@ class Proxy
      * Add a Content-Type to the allowed list
      *
      * @param string $type
-     * @param string $binary
+     * @param bool $binary
      * @return void
      */
     public function addAllowedType($type, $binary)
     {
-        $this->allowedTypes[$type] = $binary;
+        if (is_bool($binary)) {
+            $this->allowedTypes[$type] = $binary;
+        } else {
+            $this->raise('The $binary parameter must be boolean');
+        }
     }
 
     /**
@@ -285,8 +289,8 @@ class Proxy
     /**
      * Check if a given Content-Type is allowed (this method will be used by drivers)
      *
-     * @param string $type
-     * @param string $errorMessage
+     * @param string      $type
+     * @param string|null $errorMessage
      * @return bool
      */
     public function isAllowedType($type, &$errorMessage = null)
@@ -324,9 +328,11 @@ class Proxy
 
         if (strpos($path, 'php://') !== 0) {
             $path = tempnam($path, '~' . mt_rand(0, 99));
+        } elseif ($path !== 'php://memory' && preg_match('#^php://temp(/maxmemory:\d+)?$#', $path) !== 1) {
+            $this->raise('Invalid stream: ' . $path);
         }
 
-        $temp = fopen($path, 'rb+');
+        $temp = fopen($path, 'r+b');
 
         if ($temp === false) {
             $this->raise('Failed to open: ' . $path);
@@ -351,7 +357,7 @@ class Proxy
      * @param string $url          Set URL for download
      * @throws \Inphinit\Exception
      * @throws \Exception
-     * @return bool
+     * @return void
      */
     public function download($url)
     {
@@ -400,9 +406,12 @@ class Proxy
         $httpStatus = $this->httpStatus;
         $contentType = $this->contentType;
 
-        if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
-            $this->errorCode = $httpStatus;
+        if ($contentType) {
+            $contentType = trim($contentType);
+            $this->contentType = $contentType;
+        }
 
+        if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
             if ($this->coreHttpStatus) {
                 $this->errorMessage = Status::message($httpStatus, $this->errorMessage);
             } else {
@@ -411,12 +420,6 @@ class Proxy
 
             $success = false;
         } elseif ($success) {
-            if ($contentType) {
-                $contentType = trim($contentType);
-            }
-
-            $this->contentType = $contentType;
-
             if ($this->isAllowedType($contentType, $this->errorMessage) === false) {
                 $this->errorCode = 0;
                 $success = false;
@@ -444,6 +447,10 @@ class Proxy
      */
     public function setResponseCacheTime($seconds)
     {
+        if ($seconds < 0) {
+            $this->raise('Seconds must be 0 or greater');
+        }
+
         $this->responseCacheTime = $seconds;
     }
 
@@ -474,7 +481,7 @@ class Proxy
     /**
      * Output JSONP callback with URL or data URI content
      *
-     * @param string $callback     Set callback
+     * @param string $callback     JavaScript callback function name
      * @throws \Inphinit\Exception
      * @throws \Exception
      * @return void
@@ -532,8 +539,8 @@ class Proxy
     /**
      * If last download was successful, contents will be returned
      *
-     * @param int $length Optional. The maximum bytes to read.
-     * @param int $offset Optional. Seek to the specified offset before reading.
+     * @param int $length Optional. The maximum bytes to read. If it is not defined or is -1, it will read the entire remaining buffer.
+     * @param int $offset Optional. Seek to the specified offset before reading. If this number is negative, no seeking will occur and reading will start from the current position.
      * @return string|false
      */
     public function getContents($length = -1, $offset = -1)
@@ -600,7 +607,7 @@ class Proxy
         $time = time();
 
         if ($seconds > 0) {
-            header('Access-Control-Max-Age:' . $seconds);
+            header('Access-Control-Max-Age: ' . $seconds);
             header('Cache-Control: public, max-age=' . $seconds);
             $date = gmdate('D, d M Y H:i:s', $time + $seconds);
         } else {
@@ -616,18 +623,14 @@ class Proxy
 
     private function validateUrl($url)
     {
-        $urlList = $this->allowedUrls;
-
-        if ($urlList) {
+        if ($this->allowedUrls) {
             if ($this->allowedUrlsRegEx === null) {
-                $regex = implode('|', $urlList);
-                $regex = preg_quote($regex, '#');
-                $regex = strtr($regex, array(
-                    '\\*' => '[^/]+',
-                    '\\|' => '|'
-                ));
+                foreach ($this->allowedUrls as &$entry) {
+                    $entry = preg_quote($entry, '#');
+                    $entry = str_replace('\\*', '[^/]+', $entry);
+                }
 
-                $this->allowedUrlsRegEx = '#^(' . $regex . ')#';
+                $this->allowedUrlsRegEx = '#^(' . implode('|', $this->allowedUrls) . ')$#';
             }
 
             if (preg_match($this->allowedUrlsRegEx, $url) !== 1) {
@@ -640,6 +643,8 @@ class Proxy
 
     private function raise($message, $code = 0)
     {
+        $message = get_class($this->driver) . ': ' . $message;
+
         if ($this->coreException) {
             throw new \Inphinit\Exception($message, $code, 3);
         } else {

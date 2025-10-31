@@ -16,9 +16,9 @@ class CurlDriver
     private $errorMessage;
     private $handle;
     private $httpStatus;
+    private $lastUpdate = 0;
     private $maxDownloadSize;
     private $proxy;
-    private $update = 0;
 
     /**
      * Create instace
@@ -63,13 +63,13 @@ class CurlDriver
             $ch = $this->handle;
             $timeout = $this->proxy->getTimeout();
 
-            $options = array(
+            $options = [
                 CURLOPT_TIMEOUT => $timeout,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_HEADER => false,
                 CURLOPT_MAXREDIRS => $this->proxy->getMaxRedirs(),
                 CURLOPT_RETURNTRANSFER => false
-            );
+            ];
 
             $extra = $this->proxy->getOptions('curl');
 
@@ -151,7 +151,7 @@ class CurlDriver
 
         $httpCode = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
 
-        if ($httpCode >= 100 && ($httpCode < 200 || $httpCode >= 400)) {
+        if ($httpCode < 200 || $httpCode >= 400) {
             $this->httpStatus = $httpCode;
             return 1;
         }
