@@ -312,7 +312,7 @@ class Proxy
     }
 
     /**
-     * Set the temporary storage path or stream for downloaded content, eg.: /mnt/storage/, php://temp, php://memory
+     * Set the temporary storage path or stream for downloaded content (e.g., `/mnt/storage/`, `php://temp`, `php://memory`)
      *
      * @param string $path
      * @throws \Inphinit\Exception

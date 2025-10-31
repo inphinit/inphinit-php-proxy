@@ -1,22 +1,32 @@
+<p align="center">
+<a href="https://packagist.org/packages/inphinit/proxy"><img src="https://img.shields.io/packagist/dt/inphinit/proxy" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/inphinit/proxy"><img src="https://img.shields.io/packagist/v/inphinit/proxy" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/inphinit/proxy"><img src="https://img.shields.io/packagist/l/inphinit/proxy" alt="License"></a>
+</p>
+
 ## About Inphinit Proxy
 
-Until version 1.x, this project primarily served as a proxy solution for the *html2canvas* library. Version 2.0 marked a significant expansion, introducing extensive configuration and adaptation options that enable its use for a wide variety of needs and objectives.
+Inphinit Proxy is a lightweight PHP proxy library designed to work with html2canvas or other client-side applications that need to bypass CORS restrictions.
 
-Although developed as part of the Inphinit framework, the project operates completely independently. This means you can readily use it with any PHP framework or in a stand-alone application. While the project is modular, consider adopting the Inphinit framework itself for your new projects. For more details: https://inphinit.github.io
+Until version 1.x, this project was mainly a proxy solution for _html2canvas_. Starting from version 2.0, it evolved with extensive configuration and customization options, making it suitable for many different use cases.
+
+Although developed as part of the _Inphinit framework_, this library is fully standalone and compatible with any framework — or even plain PHP.
+
+While fully standalone, this library was originally part of the Inphinit framework. If you’re starting a new project, consider adopting the framework itself. For more details: https://inphinit.github.io
 
 ## Proxies for other scripting languages
 
-You do not use PHP, but need html2canvas working with proxy, see other proxies:
+If you're not using PHP but still need a proxy for _html2canvas_, check out the following implementations:
 
-* [html2canvas proxy in asp.net (csharp)](https://github.com/brcontainer/html2canvas-csharp-proxy)
-* [html2canvas proxy in asp classic (vbscript)](https://github.com/brcontainer/html2canvas-asp-vbscript-proxy)
-* [html2canvas proxy in python (work any framework)](https://github.com/brcontainer/html2canvas-proxy-python)
+* [html2canvas proxy for ASP.NET (csharp)](https://github.com/brcontainer/html2canvas-csharp-proxy)
+* [html2canvas proxy for Classic ASP (vbscript)](https://github.com/brcontainer/html2canvas-asp-vbscript-proxy)
+* [html2canvas proxy for Python (Works with any framework)](https://github.com/brcontainer/html2canvas-proxy-python)
 
 ## Requirements
 
-1. PHP 8 (https://www.php.net/supported-versions.php)
-    * Minimal _PHP 5.4_ (backward compatibility is maintained for users with upgrade limitations)
-1. cURL PHP extension to use `CurlDriver`
+1. _PHP 8.4_ is highly recommended (https://www.php.net/supported-versions.php)
+    * Minimal: PHP 5.4 compatibility is retained for environments with upgrade constraints
+1. cURL PHP extension to use the `CurlDriver`
 1. `allow_url_fopen` must be set to `1` on `php.ini` to use `StreamDriver`
 
 ## Installing
@@ -27,7 +37,7 @@ You can install via composer:
 composer require inphinit/proxy
 ```
 
-Then add this to your script or controller:
+Then include this in your script or controller:
 
 ```php
 use Inphinit\Proxy\Proxy;
@@ -42,14 +52,21 @@ $proxy->setDrivers([
     StreamDriver::class
 ]);
 
-// Execute download
-$proxy->download($_GET['url']);
+try {
+    // Execute download
+    $proxy->download($_GET['url']);
 
-// Display raw output
-$proxy->response();
+    // Display raw output
+    $proxy->response();
+} catch (Exception $ee) {
+    $code = $ee->getCode();
+    $message = $ee->getMessage();
+
+    echo 'Error: (', $code, ') ', $message;
+}
 ```
 
-If you are not using web frameworks, you can download the release from https://github.com/inphinit/inphinit-php-proxy/releases, then extract the contents and move it to the web server and rename the folder, like this (optional):
+If you're not using a framework, you can download the release from https://github.com/inphinit/inphinit-php-proxy/releases, then extract it, move it to your web server, and optionally rename the folder, for example:
 
 ```bash
 mv inphinit-php-proxy-2.0.0 proxy
@@ -68,7 +85,7 @@ html2canvas(document.getElementById('container'), {
 });
 ```
 
-If you have manually downloaded it to use on your server, you can use the `proxy.php` script, a example:
+If you have manually downloaded it to use on your server, you can use the `proxy.php` script, an example:
 
 ```javascript
 html2canvas(document.getElementById('container'), {
@@ -79,7 +96,7 @@ html2canvas(document.getElementById('container'), {
 });
 ```
 
-## Setup proxy
+## API Methods
 
 Method | Description
 --- | ---
@@ -98,17 +115,17 @@ Method | Description
 `setControlAllowHeaders(array $headers): void` | Set the list of allowed headers
 `setOptions(string $key, mixed $value): void` | Set generic options
 `getOptions([string $key]): mixed` | Get generic options
-`getOptionsUpdate(): int` | Gets the update value (incremental), used by drivers to check if they need to be reconfigured
+`getOptionsUpdate(): int` | Returns an internal incremental counter used to determine whether driver options have changed
 `setAllowedUrls(array $urls): void` | Set the list of allowed URLs for download
-`addAllowedType(string $type, string $binary): void` | Add a Content-Type to the allowed list
+`addAllowedType(string $type, bool $binary): void` | Add a Content-Type to the allowed list, `true` = Base64 encoding, `false` = URL encoding
 `removeAllowedType(string $type): void` | Remove a Content-Type from the allowed list
 `isAllowedType(string $type, string &$errorMessage): bool` | Check if a given Content-Type is allowed (this method will be used by drivers)
-`setTemporary(string $path): void` | Set the temporary storage path or stream for downloaded content, eg.: `/mnt/storage/`, `php://temp`, `php://memory`.
+`setTemporary(string $path): void` | Set the temporary storage path or stream for downloaded content (e.g., `/mnt/storage/`, `php://temp`, `php://memory`).
 `getTemporary(): resource\|null` | Get the temporary stream resource used for downloaded content
-`download(string $url): bool` | Perform the download
-`setResponseCacheTime(int $seconds): void` | Set the cache duration (in seconds) or disable cache for `Proxy::respose()` or `Proxy::jsonp()`
+`download(string $url): void` | Perform the download
+`setResponseCacheTime(int $seconds): void` | Set the cache duration (in seconds) or disable cache for `Proxy::response()` or `Proxy::jsonp()`
 `response(): void` | Dump response to output
-`jsonp($callback): void` | Output JSONP callback with URL or data URI content
+`jsonp(string $callback): void` | Output JSONP callback with URL or data URI content
 `getContents([int $length[, int $offset]]): string\|null` | If last download was successful, contents will be returned
 `getContentType(): string\|null` | If last download was successful, Content-Type will be returned
 `getHttpStatus(): int\|null` | If last download was successful, HTTP status will be returned
@@ -116,14 +133,14 @@ Method | Description
 
 ## Generic options
 
-Generic options are primarily used for driver configurations. Since each driver may require different types of settings, the most flexible approach is to allow these options to store any value. This is particularly useful when developing a new driver. Existing options include:
+Generic options allow you to customize driver behavior through their native configuration mechanisms (cURL options or stream contexts). Since each driver may require different types of settings, the most flexible approach is to allow these options to store any value. This is particularly useful when developing a new driver. Existing options include:
 
 Usage | Description
 --- | ---
 `setOptions('curl', array $value)` | Options for `CurlDriver`. See: https://www.php.net/manual/en/curl.constants.php
 `setOptions('stream', array $value)` | Options for `StreamDriver`. See: https://www.php.net/manual/en/context.php
 
-Setup cURL driver use generic options with `'curl'` in first param, eg.: `$proxy->setOptions('curl', [ ... ]);`, a sample for change SSL version:
+To configure the _cURL_ driver, use `'curl'` as the first parameter, for example `$proxy->setOptions('curl', [ ... ]);`, an example to change the SSL version:
 
 ```php
 $proxy->setOptions('curl', [
@@ -131,7 +148,7 @@ $proxy->setOptions('curl', [
 ]);
 ```
 
-A example for disable SSL verify (for local tests):
+An example to disable SSL verification (for local testing, don't use in a production environment):
 
 ```php
 $proxy->setOptions('curl', [
@@ -140,9 +157,9 @@ $proxy->setOptions('curl', [
 ]);
 ```
 
-For more constants options for use with `$proxy->setOptions('curl', [ ... ])`, see: https://www.php.net/manual/en/curl.constants.php
+For more constants options to be used with `$proxy->setOptions('curl', [ ... ])`, see: https://www.php.net/manual/en/curl.constants.php
 
-For setup Stream driver use generic options with `'stream'` in first param, eg.: `$proxy->setOptions('stream', [ ... ])`, a sample for set HTTP protocol version:
+To configure the Stream driver, use `'stream'` as the first parameter in `setOptions()`, an example to set the HTTP protocol version:
 
 ```php
 $proxy->setOptions('stream', [
@@ -152,7 +169,7 @@ $proxy->setOptions('stream', [
 ]);
 ```
 
-An example SSL configuration:
+Example SSL configuration:
 
 ```php
 $proxy->setOptions('stream', [
@@ -167,7 +184,7 @@ $proxy->setOptions('stream', [
 
 ## Content-Type allowed
 
-When executing the download() method a Content-Type validation will be performed, by default the following Content-Types are allowed:
+When executing the `download()` method, a Content-Type validation will be performed, by default the following Content-Types are allowed:
 
 Content-Type | `Proxy::jsonp()`
 --- | ---
@@ -180,14 +197,14 @@ Content-Type | `Proxy::jsonp()`
 `image/svg+xml` | URL-encoded
 `image/svg-xml` | URL-encoded
 
-You can define another allowed Content-Type, example:
+You can define additional allowed Content-Types, for example:
 
 ```php
 $proxy->addAllowedType('image/x-icon', true);
 $proxy->addAllowedType('image/vnd.microsoft.icon', true);
 ```
 
-Second parameter of the method specifies whether the `Proxy::jsonp()` should use URL encoding or Base64 encoding in the data URI scheme.
+The method's second parameter specifies whether `Proxy::jsonp()` should use _URL encoding_ or _Base64_ encoding in the data URI scheme.
 
 To remove an allowed Content-Type use the `Proxy::removeAllowedType()` method, example:
 
@@ -216,7 +233,7 @@ $proxy->download($url);
 $proxy->response();
 ```
 
-If you want to use the JSONP format, replace the `Proxy::response` method with `Proxy::jsonp`. In this example, the callback will return and receive the content in DATA URI format:
+If you want to use the JSONP format, replace the `Proxy::response` method with `Proxy::jsonp`. In this example, the callback will return and receive the content in _DATA URI_ format:
 
 ```php
 use Inphinit\Proxy\Proxy;
@@ -224,6 +241,7 @@ use Inphinit\Proxy\Drivers\CurlDriver;
 use Inphinit\Proxy\Drivers\StreamDriver;
 
 if (empty($_GET['callback'])) {
+    http_response_code(400);
     die('Missing callback');
 }
 
@@ -284,9 +302,9 @@ $proxy->setDrivers([
 You can also limit the URLs that the proxy can access:
 
 ```php
-$proxy->urls([
+$proxy->setAllowedUrls([
     'https://domain1.com/',        // Allows requests on any path to https://domain1.com
-    'https://domain2.com/images/', // Allows requests from the path /images/ on https://domain1.com
+    'https://domain2.com/images/', // Allows requests from the path /images/ on https://domain2.com
     'https://*.mainsite.io/',      // Allows requests on subdomains of mainsite.io
     'https://foo.io:8000/',        // Allows requests to foo.io with port 8000
     '*://other.io/',               // Allows HTTPS and HTTP requests to other.io
@@ -340,37 +358,36 @@ $proxy->setDrivers([
 
 ## Common issues and solutions
 
-When adding an image that belongs to another domain in `<canvas>` and after that try to export the canvas
-for a new image, a security error occurs (actually occurs is a security lock), which can return the error:
+When you add an image from another domain to a `<canvas>` element and then try to export it as a new image, a security error occurs (what actually happens is a security lock), which can return the error:
 
 > SecurityError: DOM Exception 18
 >
 > Error: An attempt was made to break through the security policy of the user agent.
 
-If using Google Maps (or google maps static) you can get this error in console:
+If you're using Google Maps (or Google Maps Static), you might see this error in the console:
 
 > Google Maps API error: MissingKeyMapError
 
-You need get a API Key in: https://developers.google.com/maps/documentation/javascript/get-api-key
+You need to obtain an API Key: https://developers.google.com/maps/documentation/javascript/get-api-key
 
 If you get this error:
 
 > Access to Image at 'file:///...' from origin 'null' has been blocked by CORS policy: Invalid response. Origin 'null' is therefore not allowed access.
 
-Means that you are not using an HTTP server, html2canvas does not work over the `file:///` protocol, use Apache, Nginx or IIS with PHP for work.
+This means you are not using an HTTP server, html2canvas does not work with the `file:///` protocol; to resolve this, use Apache, Nginx, or IIS with PHP.
 
-## Debuging with Web Console from DevTools
+## Debugging with Web Console from DevTools
 
-If you have any issue is recommend to analyze the log with the Web Console tab and requests with Network tab from your browser, see documentations:
+If you encounter any issues, check your browser's Web Console (Network and Console tabs) to inspect proxy requests and responses, see documentations:
 
 * Firefox: https://firefox-source-docs.mozilla.org/devtools-user/
 * Chrome: https://developer.chrome.com/docs/devtools
-* Microsoft Edge: https://learn.microsoft.com/pt-br/microsoft-edge/devtools-guide-chromium/landing/
+* Microsoft Edge: https://learn.microsoft.com/en-us/microsoft-edge/devtools/landing/
 
-An alternative is to debug issues by accessing the link directly:
+You can also test the proxy directly by visiting:
 
 `http://[DOMAIN]/[PATH]/proxy?url=http%3A%2F%2Fmaps.googleapis.com%2Fmaps%2Fapi%2Fstaticmap%3Fcenter%3D40.714728%2C-73.998672%26zoom%3D12%26size%3D800x600%26maptype%3Droadmap%26sensor%3Dfalse%261&callback=html2canvas_0`
 
-Replace `[DOMAIN]` by your domain (eg. 127.0.0.1) and replace `[PATH]` by your project folder (eg.: `project-1/test`), something like:
+Replace `[DOMAIN]` with your domain (e.g., `127.0.0.1`) and replace `[PATH]` by your project folder (e.g., `project-1/test`), something like:
 
 `http://localhost/project-1/test/proxy?url=http%3A%2F%2Fmaps.googleapis.com%2Fmaps%2Fapi%2Fstaticmap%3Fcenter%3D40.714728%2C-73.998672%26zoom%3D12%26size%3D800x600%26maptype%3Droadmap%26sensor%3Dfalse%261&callback=html2canvas_0`
