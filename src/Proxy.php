@@ -421,7 +421,6 @@ class Proxy
             $success = false;
         } elseif ($success) {
             if ($this->isAllowedType($contentType, $this->errorMessage) === false) {
-                $this->errorCode = 0;
                 $success = false;
             }
         }

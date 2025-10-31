@@ -151,7 +151,7 @@ class CurlDriver
 
         $httpCode = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
 
-        if ($httpCode < 200 || $httpCode >= 400) {
+        if ($httpCode !== 0 && $httpCode < 200 || $httpCode >= 400) {
             $this->httpStatus = $httpCode;
             return 1;
         }
