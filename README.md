@@ -24,8 +24,8 @@ If you're not using PHP but still need a proxy for _html2canvas_, check out the 
 
 ## Requirements
 
-1. _PHP 8.4_ is highly recommended (https://www.php.net/supported-versions.php)
-    * Minimal: PHP 5.4 compatibility is retained for environments with upgrade constraints
+1. Recommended: _PHP 8_ (see the currently supported versions at https://www.php.net/supported-versions.php)
+    * Minimum: _PHP 5.4_ (backward compatibility is preserved for environments with upgrade limitations)
 1. cURL PHP extension to use the `CurlDriver`
 1. `allow_url_fopen` must be set to `1` on `php.ini` to use `StreamDriver`
 
@@ -104,22 +104,22 @@ Method | Description
 `getMaxDownloadSize(): int` | Get the maximum allowed download size
 `setMaxRedirs(int $value): void` | Set the maximum number of HTTP redirects
 `getMaxRedirs(): int` | Get the maximum number of HTTP redirects
-`setReferer(string $value): void` | Set the Referer request header
-`getReferer(): string` | Get the Referer request header
+`setReferer(string $value): void` | Set the `Referer` request header
+`getReferer(): string` | Get the `Referer` request header
 `setTimeout(int $value): void` | Set the connection timeout in seconds
 `getTimeout(): int` | Get the connection timeout in seconds
-`setUserAgent(string $value): void` | Set the User-Agent request header
-`getUserAgent(): string` | Get the User-Agent request header
+`setUserAgent(string $value): void` | Set the `User-Agent` request header
+`getUserAgent(): string` | Get the `User-Agent` request header
 `setDrivers(array $drivers): void` | Set the list of driver class names used for downloading resources
-`setControlAllowOrigin(string $origin): void` | Set the Access-Control-Allow-Origin header
+`setControlAllowOrigin(string $origin): void` | Set the `Access-Control-Allow-Origin` header
 `setControlAllowHeaders(array $headers): void` | Set the list of allowed headers
 `setOptions(string $key, mixed $value): void` | Set generic options
 `getOptions([string $key]): mixed` | Get generic options
 `getOptionsUpdate(): int` | Returns an internal incremental counter used to determine whether driver options have changed
 `setAllowedUrls(array $urls): void` | Set the list of allowed URLs for download
-`addAllowedType(string $type, bool $binary): void` | Add a Content-Type to the allowed list, `true` = Base64 encoding, `false` = URL encoding
-`removeAllowedType(string $type): void` | Remove a Content-Type from the allowed list
-`isAllowedType(string $type, string &$errorMessage): bool` | Check if a given Content-Type is allowed (this method will be used by drivers)
+`addAllowedType(string $type, bool $binary): void` | Add a `Content-Type` to the allowed list, `true` = Base64 encoding, `false` = URL encoding
+`removeAllowedType(string $type): void` | Remove a `Content-Type` from the allowed list
+`isAllowedType(string $type, string &$errorMessage): bool` | Check if a given `Content-Type` is allowed (this method will be used by drivers)
 `setTemporary(string $path): void` | Set the temporary storage path or stream for downloaded content (e.g., `/mnt/storage/`, `php://temp`, `php://memory`).
 `getTemporary(): resource\|null` | Get the temporary stream resource used for downloaded content
 `download(string $url): void` | Perform the download
@@ -127,7 +127,7 @@ Method | Description
 `response(): void` | Dump response to output
 `jsonp(string $callback): void` | Output JSONP callback with URL or data URI content
 `getContents([int $length[, int $offset]]): string\|null` | If last download was successful, contents will be returned
-`getContentType(): string\|null` | If last download was successful, Content-Type will be returned
+`getContentType(): string\|null` | If last download was successful, `Content-Type` will be returned
 `getHttpStatus(): int\|null` | If last download was successful, HTTP status will be returned
 `reset(): void` | Reset last download
 
@@ -182,11 +182,11 @@ $proxy->setOptions('stream', [
 ]);
 ```
 
-## Content-Type allowed
+## `Content-Type` allowed
 
-When executing the `download()` method, a Content-Type validation will be performed, by default the following Content-Types are allowed:
+When executing the `download()` method, a `Content-Type` validation will be performed, by default the following `Content-Type`s are allowed:
 
-Content-Type | `Proxy::jsonp()`
+`Content-Type` | `Proxy::jsonp()`
 --- | ---
 `image/apng` | base64
 `image/png` | base64
@@ -206,7 +206,7 @@ $proxy->addAllowedType('image/vnd.microsoft.icon', true);
 
 The method's second parameter specifies whether `Proxy::jsonp()` should use _URL encoding_ or _Base64_ encoding in the data URI scheme.
 
-To remove an allowed Content-Type use the `Proxy::removeAllowedType()` method, example:
+To remove an allowed `Content-Type` use the `Proxy::removeAllowedType()` method, example:
 
 ```php
 $proxy->removeAllowedType('image/apng');
@@ -233,7 +233,7 @@ $proxy->download($url);
 $proxy->response();
 ```
 
-If you want to use the JSONP format, replace the `Proxy::response` method with `Proxy::jsonp`. In this example, the callback will return and receive the content in _DATA URI_ format:
+If you want to use the JSONP format, replace the `Proxy::response` method with `Proxy::jsonp()`. In this example, the callback will return and receive the content in _DATA URI_ format:
 
 ```php
 use Inphinit\Proxy\Proxy;
@@ -259,7 +259,7 @@ try {
 }
 ```
 
-If you need to handle content, you can use the `Proxy::getContents`, `Proxy::getContentType`, `Proxy::getHttpStatus` methods:
+If you need to handle content, you can use the `Proxy::getContents()`, `Proxy::getContentType()`, `Proxy::getHttpStatus()` methods:
 
 ```php
 use Inphinit\Proxy\Proxy;
