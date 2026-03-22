@@ -115,6 +115,12 @@ class StreamDriver
 
         $meta_data = stream_get_meta_data($handle);
 
+        if (empty($meta_data['wrapper_data'])) {
+            $errorMessage = 'Missing `wrapper_data` info';
+            fclose($handle);
+            return false;
+        }
+
         foreach ($meta_data['wrapper_data'] as $index => $header) {
             if ($index === 0) {
                 if (preg_match('#HTTP/\d+\.\d+\s+(\d+)#', $header, $match)) {

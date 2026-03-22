@@ -58,6 +58,8 @@ class CurlDriver
         if ($this->handle === null || $this->lastUpdate < $update) {
             $this->lastUpdate = $update;
 
+            $this->close();
+
             $this->handle = curl_init();
 
             $ch = $this->handle;
@@ -151,7 +153,7 @@ class CurlDriver
 
         $httpCode = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
 
-        if ($httpCode !== 0 && $httpCode < 200 || $httpCode >= 400) {
+        if (($httpCode !== 0 && $httpCode < 200) || $httpCode >= 400) {
             $this->httpStatus = $httpCode;
             return 1;
         }
@@ -165,10 +167,17 @@ class CurlDriver
         return 0;
     }
 
-    public function __destruct()
+    private function close()
     {
-        if ($this->handle) {
+        if ($this->handle && PHP_VERSION_ID < 80500) {
             curl_close($this->handle);
         }
+
+        $this->handle = null;
+    }
+
+    public function __destruct()
+    {
+        $this->close();
     }
 }

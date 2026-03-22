@@ -361,6 +361,14 @@ class Proxy
      */
     public function download($url)
     {
+        if ($this->isHttpUrl($url, $message) === false) {
+            $this->raise($message);
+        }
+
+        if ($this->checkAllowedUrl($url) === false) {
+            $this->raise('URL not allowed: ' . $url);
+        }
+
         if ($this->temporary === null) {
             $temporary = tmpfile();
 
@@ -369,10 +377,6 @@ class Proxy
             } else {
                 $this->raise('Failed to open temporary file');
             }
-        }
-
-        if ($this->validateUrl($url) === false) {
-            $this->raise('URL not allowed: ' . $url);
         }
 
         $this->errorCode = null;
@@ -434,7 +438,9 @@ class Proxy
                 $this->errorMessage = 'An unexpected issue occurred';
             }
 
-            $this->raise($this->errorMessage, $this->errorCode);
+            $message = get_class($this->driver) . ': ' . $this->errorMessage;
+
+            $this->raise($message, $this->errorCode);
         }
     }
 
@@ -620,16 +626,34 @@ class Proxy
         header('Content-type: ' . $contentType);
     }
 
-    private function validateUrl($url)
+    private function isHttpUrl($url, &$message)
+    {
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            $message = "Invalid URL: {$url}";
+            return false;
+        }
+
+        if (in_array(parse_url($url, PHP_URL_SCHEME), array('http', 'https')) == false) {
+            $message = "The following URL is not http/https: {$url}";
+            return false;
+        }
+
+        return true;
+    }
+
+    private function checkAllowedUrl($url)
     {
         if ($this->allowedUrls) {
             if ($this->allowedUrlsRegEx === null) {
-                foreach ($this->allowedUrls as &$entry) {
+                $allowed = array();
+
+                foreach ($this->allowedUrls as $entry) {
                     $entry = preg_quote($entry, '#');
                     $entry = str_replace('\\*', '[^/]+', $entry);
+                    $allowed[] = $entry;
                 }
 
-                $this->allowedUrlsRegEx = '#^(' . implode('|', $this->allowedUrls) . ')$#';
+                $this->allowedUrlsRegEx = '#^(' . implode('|', $allowed) . ')$#';
             }
 
             if (preg_match($this->allowedUrlsRegEx, $url) !== 1) {
@@ -642,8 +666,6 @@ class Proxy
 
     private function raise($message, $code = 0)
     {
-        $message = get_class($this->driver) . ': ' . $message;
-
         if ($this->coreException) {
             throw new \Inphinit\Exception($message, $code, 3);
         } else {
