@@ -19,14 +19,14 @@ $proxy = new Proxy();
 
 // Set drivers used for download
 $proxy->setDrivers([
-    //CurlDriver::class,
-    StreamDriver::class
+    CurlDriver::class,
+    StreamDriver::class,
 ]);
 
 /*
 // PHP 5.4 sintax
 $proxy->setDrivers([
-    'Inphinit\Proxy\Drivers\CurlDriver',
+    //'Inphinit\Proxy\Drivers\CurlDriver',
     'Inphinit\Proxy\Drivers\StreamDriver',
 ]);
 */
@@ -64,19 +64,22 @@ $proxy->setAllowedUrls([
 // Set allowed Content-Types
 // $proxy->addAllowedType('image/ico', true);
 
-// Extra configs for CurlDriver
-// $proxy->setOptions('curl', [ CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_3 ]);
+// Extra configs for CurlDriver, see details in: https://www.php.net/manual/en/curl.constants.php
+/*
+$proxy->setOptions(CurlDriver::class, [
+    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_3,
+    CURLOPT_FORBID_REUSE => true,
+]);
+*/
 
 // Extra configs for StreamDriver, see details in: https://www.php.net/manual/en/context.php
 /*
-$proxy->setOptions('stream', [
+$proxy->setOptions(StreamDriver::class, [
     'http' => [
-        'method' => 'POST'
+        'method' => 'POST',
         'user_agent' => 'foo/bar',
     ],
-    'ssl'  => [
-        ...
-    ]
+    'ssl'  => []
 ]);
 */
 

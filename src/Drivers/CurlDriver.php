@@ -73,7 +73,7 @@ class CurlDriver
                 CURLOPT_RETURNTRANSFER => false
             ];
 
-            $extra = $this->proxy->getOptions('curl');
+            $extra = $this->proxy->getOptions(get_class($this));
 
             if ($extra) {
                 $options += $extra;
@@ -87,10 +87,10 @@ class CurlDriver
                 curl_setopt($ch, CURLOPT_REFERER, $referer);
             }
 
-            $userAgent = $this->proxy->getUserAgent();
+            $user_agent = $this->proxy->getUserAgent();
 
-            if ($userAgent) {
-                curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
+            if ($user_agent) {
+                curl_setopt($ch, CURLOPT_USERAGENT, $user_agent);
             }
 
             curl_setopt($ch, CURLOPT_NOPROGRESS, false);
@@ -98,16 +98,16 @@ class CurlDriver
             $this->maxDownloadSize = $this->proxy->getMaxDownloadSize();
 
             if (PHP_VERSION_ID < 50500) {
-                $progressCallback = function ($downloadSize, $downloaded, $uploadSize, $uploaded) {
+                $progress_callback = function ($downloadSize, $downloaded, $uploadSize, $uploaded) {
                     return $this->abort($downloaded);
                 };
             } else {
-                $progressCallback = function ($resource, $downloadSize, $downloaded, $uploadSize, $uploaded) {
+                $progress_callback = function ($resource, $downloadSize, $downloaded, $uploadSize, $uploaded) {
                     return $this->abort($downloaded);
                 };
             }
 
-            curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, $progressCallback);
+            curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, $progress_callback);
 
             $temp = $this->proxy->getTemporary();
 
@@ -151,16 +151,16 @@ class CurlDriver
             return 1;
         }
 
-        $httpCode = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
+        $http_code = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
 
-        if (($httpCode !== 0 && $httpCode < 200) || $httpCode >= 400) {
-            $this->httpStatus = $httpCode;
+        if (($http_code !== 0 && $http_code < 200) || $http_code >= 400) {
+            $this->httpStatus = $http_code;
             return 1;
         }
 
         $contentType = curl_getinfo($this->handle, CURLINFO_CONTENT_TYPE);
 
-        if ($httpCode < 300 && $contentType) {
+        if ($http_code < 300 && $contentType) {
             return $this->proxy->isAllowedType($contentType, $this->errorMessage) ? 0 : 1;
         }
 

@@ -177,7 +177,10 @@ class Proxy
      */
     public function setDrivers(array $drivers)
     {
+        $this->driver = null;
         $this->drivers = $drivers;
+        $this->options = array_fill_keys($drivers, array());
+        $this->refreshOptionsUpdate();
     }
 
     /**
@@ -211,30 +214,34 @@ class Proxy
     /**
      * Set generic options
      *
-     * @param string $key
+     * @param string $driver
      * @param mixed $value
      * @return void
      */
-    public function setOptions($key, $value)
+    public function setOptions($driver, $value)
     {
-        $this->options[$key] = $value;
+        if (isset($this->options[$driver]) === false) {
+            $this->raise('Invalid driver');
+        }
+
+        $this->options[$driver] = $value;
         $this->refreshOptionsUpdate();
     }
 
     /**
      * Get generic options
      *
-     * @param string $key Optional. If the parameter is not defined, it will
-     *                    return an array with all the settings already defined.
+     * @param string $driver Optional. If the parameter is not defined, it will
+     *                       return an array with all the settings already defined.
      * @return mixed
      */
-    public function getOptions($key = null)
+    public function getOptions($driver = null)
     {
-        if ($key === null) {
+        if ($driver === null) {
             return $this->options;
         }
 
-        return isset($this->options[$key]) ? $this->options[$key] : null;
+        return isset($this->options[$driver]) ? $this->options[$driver] : null;
     }
 
     /**
@@ -328,6 +335,10 @@ class Proxy
 
         if (strpos($path, 'php://') !== 0) {
             $path = tempnam($path, '~' . mt_rand(0, 99));
+
+            if ($path === false) {
+                $this->raise('Failed to create temporary file in ' . $path);
+            }
         } elseif ($path !== 'php://memory' && preg_match('#^php://temp(/maxmemory:\d+)?$#', $path) !== 1) {
             $this->raise('Invalid stream: ' . $path);
         }
@@ -379,7 +390,7 @@ class Proxy
             }
         }
 
-        $this->errorCode = null;
+        $this->errorCode = 0;
         $this->errorMessage = null;
         $this->httpStatus = null;
 
@@ -417,7 +428,7 @@ class Proxy
 
         if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
             if ($this->coreHttpStatus) {
-                $this->errorMessage = Status::message($httpStatus, $this->errorMessage);
+                $this->errorMessage = \Inphinit\Http\Status::message($httpStatus, $this->errorMessage);
             } else {
                 $this->errorMessage = 'HTTP error: ' . $httpStatus;
             }

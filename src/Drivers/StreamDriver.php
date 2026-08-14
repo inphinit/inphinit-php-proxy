@@ -52,10 +52,6 @@ class StreamDriver
      */
     public function exec($url, &$httpStatus, &$contentType, &$errorCode, &$errorMessage)
     {
-        $contentType = '';
-        $errorCode = 0;
-        $errorMessage = null;
-        $httpStatus = null;
         $update = $this->proxy->getOptionsUpdate();
 
         if ($this->context === null || $this->lastUpdate !== $update) {
@@ -78,17 +74,17 @@ class StreamDriver
                 $options['http']['referer'] = $referer;
             }
 
-            $userAgent = $this->proxy->getUserAgent();
+            $user_agent = $this->proxy->getUserAgent();
 
-            if ($userAgent) {
-                $options['http']['user_agent'] = $userAgent;
+            if ($user_agent) {
+                $options['http']['user_agent'] = $user_agent;
             }
 
             if (empty($options['http']['method'])) {
                 $options['http']['method'] = 'GET';
             }
 
-            $extra = $this->proxy->getOptions('stream');
+            $extra = $this->proxy->getOptions(get_class($this));
 
             // Adds other contexts like Socket, SSL and notification.
             if ($extra) {
@@ -138,7 +134,7 @@ class StreamDriver
             $errorMessage = '';
         } elseif ($errorMessage === null && $this->proxy->isAllowedType($contentType, $errorMessage)) {
             $downloaded = 0;
-            $maxSize = $this->proxy->getMaxDownloadSize();
+            $max_size = $this->proxy->getMaxDownloadSize();
             $temp = $this->proxy->getTemporary();
             $timeout = $this->timeout;
 
@@ -152,7 +148,7 @@ class StreamDriver
 
                 $downloaded += strlen($data);
 
-                if ($downloaded > $maxSize) {
+                if ($downloaded > $max_size) {
                     $errorMessage = 'Download aborted because file size exceeded the maximum allowed';
                     break;
                 }

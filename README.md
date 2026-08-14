@@ -113,8 +113,8 @@ Method | Description
 `setDrivers(array $drivers): void` | Set the list of driver class names used for downloading resources
 `setControlAllowOrigin(string $origin): void` | Set the `Access-Control-Allow-Origin` header
 `setControlAllowHeaders(array $headers): void` | Set the list of allowed headers
-`setOptions(string $key, mixed $value): void` | Set generic options
-`getOptions([string $key]): mixed` | Get generic options
+`setOptions(string $driver, mixed $value): void` | Set the generic options for a specific driver class
+`getOptions([string $driver]): mixed` | Get the generic options for a specific driver class
 `getOptionsUpdate(): int` | Returns an internal incremental counter used to determine whether driver options have changed
 `setAllowedUrls(array $urls): void` | Set the list of allowed URLs for download
 `addAllowedType(string $type, bool $binary): void` | Add a `Content-Type` to the allowed list, `true` = Base64 encoding, `false` = URL encoding
@@ -137,32 +137,40 @@ Generic options allow you to customize driver behavior through their native conf
 
 Usage | Description
 --- | ---
-`setOptions('curl', array $value)` | Options for `CurlDriver`. See: https://www.php.net/manual/en/curl.constants.php
-`setOptions('stream', array $value)` | Options for `StreamDriver`. See: https://www.php.net/manual/en/context.php
+`setOptions(CurlDriver::class, array $value)` | Options for `CurlDriver`. See: https://www.php.net/manual/en/curl.constants.php
+`setOptions(StreamDriver::class, array $value)` | Options for `StreamDriver`. See: https://www.php.net/manual/en/context.php
 
-To configure the _cURL_ driver, use `'curl'` as the first parameter, for example `$proxy->setOptions('curl', [ ... ]);`, an example to change the SSL version:
+To configure the _cURL_ driver, use `CurlDriver::class` as the first parameter, for example `$proxy->setOptions(CurlDriver::class, [ ... ]);`, an example to change the SSL version:
 
 ```php
-$proxy->setOptions('curl', [
-    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_3
+$proxy->setOptions(CurlDriver::class, [
+    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_3,
 ]);
 ```
 
 An example to disable SSL verification (for local testing, don't use in a production environment):
 
 ```php
-$proxy->setOptions('curl', [
+$proxy->setOptions(CurlDriver::class, [
     CURLOPT_SSL_VERIFYHOST => 0,
-    CURLOPT_SSL_VERIFYPEER => false
+    CURLOPT_SSL_VERIFYPEER => false,
 ]);
 ```
 
-For more constants options to be used with `$proxy->setOptions('curl', [ ... ])`, see: https://www.php.net/manual/en/curl.constants.php
-
-To configure the Stream driver, use `'stream'` as the first parameter in `setOptions()`, an example to set the HTTP protocol version:
+An example to force the connection to explicitly close when it has finished processing, and not be pooled for reuse (Available as of cURL 7.7.0), using `CURLOPT_FORBID_REUSE`:
 
 ```php
-$proxy->setOptions('stream', [
+$proxy->setOptions(CurlDriver::class, [
+    CURLOPT_FORBID_REUSE => true,
+]);
+```
+
+For more constants options to be used with `$proxy->setOptions(CurlDriver::class, [ ... ])`, see: https://www.php.net/manual/en/curl.constants.php
+
+To configure the _Stream_ driver, use `StreamDriver::class` as the first parameter in `setOptions()`, an example to set the HTTP protocol version:
+
+```php
+$proxy->setOptions(StreamDriver::class, [
     'http' => [
         'protocol_version' => 1.0,
     ]
@@ -172,7 +180,7 @@ $proxy->setOptions('stream', [
 Example SSL configuration:
 
 ```php
-$proxy->setOptions('stream', [
+$proxy->setOptions(StreamDriver::class, [
     'ssl' => [
         'verify_peer'   => true,
         'cafile'        => '/foo/bar/baz/cacert.pem',
@@ -291,7 +299,7 @@ try {
 }
 ```
 
-In the examples so far, CurlDriver takes priority, and uses `StreamDriver` as a fallback, but you can change this, in a hypothetical example, if you only want to use `StreamDriver`:
+In the examples so far, `CurlDriver` takes priority, and uses `StreamDriver` as a fallback, but you can change this, in a hypothetical example, if you only want to use `StreamDriver`:
 
 ```php
 $proxy->setDrivers([
@@ -353,6 +361,14 @@ Once created you can use it like this:
 ```php
 $proxy->setDrivers([
     CustomDriver::class
+]);
+```
+
+To configure the driver, use `::class` in class for return the class name, example:
+
+```php
+$proxy->setOptions(CustomDriver::class, [
+    'my_custom' => 1,
 ]);
 ```
 
