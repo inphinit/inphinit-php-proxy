@@ -25,12 +25,12 @@ class Proxy
     private $allowedUrls = [];
     private $allowedUrlsRegEx;
     private $allowedTypes = [
-        'image/apng' => true,
-        'image/png' => true,
-        'image/avif' => true,
-        'image/webp' => true,
-        'image/gif' => true,
-        'image/jpeg' => true,
+        'image/apng'    => true,
+        'image/png'     => true,
+        'image/avif'    => true,
+        'image/webp'    => true,
+        'image/gif'     => true,
+        'image/jpeg'    => true,
         'image/svg+xml' => false,
         'image/svg-xml' => false // Support for old web servers (an old bug)
     ];
@@ -418,24 +418,24 @@ class Proxy
 
         $success = $this->driver->exec($url, $this->httpStatus, $this->contentType, $this->errorCode, $this->errorMessage);
 
-        $httpStatus = $this->httpStatus;
-        $contentType = $this->contentType;
+        $http_status = $this->httpStatus;
+        $content_type = $this->contentType;
 
-        if ($contentType) {
-            $contentType = trim($contentType);
-            $this->contentType = $contentType;
+        if ($content_type) {
+            $content_type = trim($content_type);
+            $this->contentType = $content_type;
         }
 
-        if ($httpStatus !== null && ($httpStatus < 200 || $httpStatus >= 300)) {
+        if ($http_status !== null && ($http_status < 200 || $http_status >= 300)) {
             if ($this->coreHttpStatus) {
-                $this->errorMessage = \Inphinit\Http\Status::message($httpStatus, $this->errorMessage);
+                $this->errorMessage = \Inphinit\Http\Status::message($http_status, $this->errorMessage);
             } else {
-                $this->errorMessage = 'HTTP error: ' . $httpStatus;
+                $this->errorMessage = 'HTTP error: ' . $http_status;
             }
 
             $success = false;
         } elseif ($success) {
-            if ($this->isAllowedType($contentType, $this->errorMessage) === false) {
+            if ($this->isAllowedType($content_type, $this->errorMessage) === false) {
                 $success = false;
             }
         }
@@ -514,24 +514,24 @@ class Proxy
 
         $this->sendHeaders('application/javascript');
 
-        $contentType = $this->contentType;
+        $content_type = $this->contentType;
         $extra = null;
-        $extract = explode(';', $this->contentType, 2);
+        $extract = explode(';', $content_type, 2);
 
         if (isset($extract[1])) {
-            list($contentType, $extra) = $extract;
+            list($content_type, $extra) = $extract;
         }
 
-        $binary = $this->allowedTypes[$contentType];
+        $binary = $this->allowedTypes[$content_type];
 
         if ($binary) {
-            $contentType .= ';base64';
+            $content_type .= ';base64';
         } elseif ($extra) {
-            $contentType .= ';' . $extra;
+            $content_type .= ';' . $extra;
         }
 
         echo $callback, '("';
-        echo 'data:' . $contentType . ',';
+        echo 'data:' . $content_type . ',';
 
         $handle = $this->temporary;
 

@@ -158,10 +158,10 @@ class CurlDriver
             return 1;
         }
 
-        $contentType = curl_getinfo($this->handle, CURLINFO_CONTENT_TYPE);
+        $content_type = curl_getinfo($this->handle, CURLINFO_CONTENT_TYPE);
 
-        if ($http_code < 300 && $contentType) {
-            return $this->proxy->isAllowedType($contentType, $this->errorMessage) ? 0 : 1;
+        if ($http_code < 300 && $content_type) {
+            return $this->proxy->isAllowedType($content_type, $this->errorMessage) ? 0 : 1;
         }
 
         return 0;

@@ -30,13 +30,17 @@ class StreamDriver
     }
 
     /**
-     * Check if the driver is available
+     * Check if the driver is available.
+     *
+     * Note: If `ini_get()` is disabled via the `disable_functions` directive,
+     * this method will return `true` for convenience, and the responsibility
+     * for verifying support for `allow_url_fopen` will be delegated
+     * to the `StreamDriver::exec()` method during the download request.
      *
      * @return bool
      */
     public function available()
     {
-        // For convenience, if ini_get is disabled, the function will return true
         return function_exists('ini_get') === false || ini_get('allow_url_fopen') == 1;
     }
 
