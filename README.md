@@ -113,9 +113,9 @@ Method | Description
 `setDrivers(array $drivers): void` | Set the list of driver class names used for downloading resources
 `setControlAllowOrigin(string $origin): void` | Set the `Access-Control-Allow-Origin` header
 `setControlAllowHeaders(array $headers): void` | Set the list of allowed headers
-`setOptions(string $driver, mixed $value): void` | Set the generic options for a specific driver class
-`getOptions([string $driver]): mixed` | Get the generic options for a specific driver class
-`getOptionsUpdate(): int` | Returns an internal incremental counter used to determine whether driver options have changed
+`setOptions(string $driver, array $value): void` | Set the generic options for a specific driver class
+`getOptions([string $driver]): array` | Get the generic options for a specific driver class
+`pollOptions(): bool` | Indicates that the driver should receive the new options
 `setAllowedUrls(array $urls): void` | Set the list of allowed URLs for download
 `addAllowedType(string $type, bool $binary): void` | Add a `Content-Type` to the allowed list, `true` = Base64 encoding, `false` = URL encoding
 `removeAllowedType(string $type): void` | Remove a `Content-Type` from the allowed list

@@ -2,7 +2,7 @@
 /**
  * Inphinit Proxy
  *
- * Copyright (c) 2025 Guilherme Nascimento
+ * Copyright (c) 2026 Guilherme Nascimento
  *
  * Released under the MIT license
  */
@@ -16,7 +16,6 @@ class CurlDriver
     private $errorMessage;
     private $handle;
     private $httpStatus;
-    private $lastUpdate = 0;
     private $maxDownloadSize;
     private $proxy;
 
@@ -53,11 +52,7 @@ class CurlDriver
      */
     public function exec($url, &$httpStatus, &$contentType, &$errorCode, &$errorMessage)
     {
-        $update = $this->proxy->getOptionsUpdate();
-
-        if ($this->handle === null || $this->lastUpdate < $update) {
-            $this->lastUpdate = $update;
-
+        if ($this->proxy->pollOptions()) {
             $this->close();
 
             $this->handle = curl_init();

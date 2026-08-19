@@ -2,7 +2,7 @@
 /**
  * Inphinit Proxy
  *
- * Copyright (c) 2025 Guilherme Nascimento
+ * Copyright (c) 2026 Guilherme Nascimento
  *
  * Released under the MIT license
  */
@@ -19,7 +19,7 @@ class Proxy
 
     private $temporary;
     private $options = [];
-    private $optionsUpdate = 1;
+    private $pendingOptions = true;
     private $driver;
     private $drivers = [];
     private $allowedUrls = [];
@@ -60,7 +60,7 @@ class Proxy
     }
 
     /**
-     * Set the maximum allowed download size
+     * Set the maximum allowed download size in driver HTTP request
      *
      * @param int $value
      * @return void
@@ -68,7 +68,7 @@ class Proxy
     public function setMaxDownloadSize($value)
     {
         $this->maxDownloadSize = $value;
-        $this->refreshOptionsUpdate();
+        $this->pendingOptions = true;
     }
 
     /**
@@ -82,7 +82,7 @@ class Proxy
     }
 
     /**
-     * Set the maximum number of HTTP redirects
+     * Set the maximum number of HTTP redirects in driver
      *
      * @param int $value
      * @return void
@@ -90,7 +90,7 @@ class Proxy
     public function setMaxRedirs($value)
     {
         $this->maxRedirs = $value;
-        $this->refreshOptionsUpdate();
+        $this->pendingOptions = true;
     }
 
     /**
@@ -104,7 +104,7 @@ class Proxy
     }
 
     /**
-     * Set the Referer request header
+     * Set the Referer request header for driver HTTP request
      *
      * @param string $value
      * @return void
@@ -112,7 +112,7 @@ class Proxy
     public function setReferer($value)
     {
         $this->referer = $value;
-        $this->refreshOptionsUpdate();
+        $this->pendingOptions = true;
     }
 
     /**
@@ -126,7 +126,7 @@ class Proxy
     }
 
     /**
-     * Set the connection timeout in seconds
+     * Set the driver connection timeout in seconds
      *
      * @param int $value
      * @return void
@@ -134,7 +134,7 @@ class Proxy
     public function setTimeout($value)
     {
         $this->timeout = $value;
-        $this->refreshOptionsUpdate();
+        $this->pendingOptions = true;
     }
 
     /**
@@ -148,7 +148,7 @@ class Proxy
     }
 
     /**
-     * Set the User-Agent request header
+     * Set the User-Agent request header for driver HTTP request
      *
      * @param string $value
      * @return void
@@ -156,7 +156,7 @@ class Proxy
     public function setUserAgent($value)
     {
         $this->userAgent = $value;
-        $this->refreshOptionsUpdate();
+        $this->pendingOptions = true;
     }
 
     /**
@@ -180,11 +180,10 @@ class Proxy
         $this->driver = null;
         $this->drivers = $drivers;
         $this->options = array_fill_keys($drivers, array());
-        $this->refreshOptionsUpdate();
     }
 
     /**
-     * Set the Access-Control-Allow-Origin header
+     * Set the Access-Control-Allow-Origin header (used by `::response()` and `::json()` methods)
      *
      * @param string $origin
      * @throws \Inphinit\Exception
@@ -201,7 +200,7 @@ class Proxy
     }
 
     /**
-     * Set the list of allowed headers
+     * Set the list of allowed headers (used by `::response()` and `::json()` methods)
      *
      * @param array $headers
      * @return void
@@ -215,17 +214,17 @@ class Proxy
      * Set generic options
      *
      * @param string $driver
-     * @param mixed $value
+     * @param array $value
      * @return void
      */
-    public function setOptions($driver, $value)
+    public function setOptions($driver, array $value)
     {
         if (isset($this->options[$driver]) === false) {
             $this->raise('Invalid driver');
         }
 
         $this->options[$driver] = $value;
-        $this->refreshOptionsUpdate();
+        $this->pendingOptions = true;
     }
 
     /**
@@ -233,7 +232,7 @@ class Proxy
      *
      * @param string $driver Optional. If the parameter is not defined, it will
      *                       return an array with all the settings already defined.
-     * @return mixed
+     * @return array
      */
     public function getOptions($driver = null)
     {
@@ -245,13 +244,17 @@ class Proxy
     }
 
     /**
-     * Gets the update value (incremental), used by drivers to check if they need to reconfigure something.
+     * Indicates that the driver should receive the new options
      *
-     * @return int
+     * @return bool
      */
-    public function getOptionsUpdate()
+    public function pollOptions()
     {
-        return $this->optionsUpdate;
+        $pending = $this->pendingOptions;
+
+        $this->pendingOptions = false;
+
+        return $pending;
     }
 
     /**
@@ -302,10 +305,16 @@ class Proxy
      */
     public function isAllowedType($type, &$errorMessage = null)
     {
+        if (!is_string($type) || $type === '') {
+            $errorMessage = 'The response has no valid Content-Type';
+
+            return false;
+        }
+
         $type = trim($type);
         $pos = strpos($type, ';');
 
-        if ($pos > 0) {
+        if ($pos !== false) {
             $type = substr($type, 0, $pos);
         }
 
@@ -334,11 +343,13 @@ class Proxy
         }
 
         if (strpos($path, 'php://') !== 0) {
-            $path = tempnam($path, '~' . mt_rand(0, 99));
+            $tmp_path = tempnam($path, '~' . mt_rand(0, 99));
 
-            if ($path === false) {
+            if ($tmp_path === false) {
                 $this->raise('Failed to create temporary file in ' . $path);
             }
+
+            $path = $tmp_path;
         } elseif ($path !== 'php://memory' && preg_match('#^php://temp(/maxmemory:\d+)?$#', $path) !== 1) {
             $this->raise('Invalid stream: ' . $path);
         }
@@ -411,6 +422,7 @@ class Proxy
 
             if ($selected) {
                 $this->driver = $selected;
+                $this->pendingOptions = true;
             } else {
                 $this->raise('None of the defined drivers are supported');
             }
@@ -543,8 +555,7 @@ class Proxy
                 echo base64_encode($raw);
             }
         } else {
-            while (feof($handle) === false) {
-                $raw = fgets($handle, 4096);
+            while (($raw = fgets($handle, 4096)) !== false) {
                 echo rawurlencode($raw);
             }
         }
@@ -600,11 +611,6 @@ class Proxy
         }
     }
 
-    private function refreshOptionsUpdate()
-    {
-        $this->optionsUpdate += 1;
-    }
-
     private function sendHeaders($contentType)
     {
         header('Access-Control-Allow-Credentials: true');
@@ -656,7 +662,7 @@ class Proxy
     {
         if ($this->allowedUrls) {
             if ($this->allowedUrlsRegEx === null) {
-                $allowed = array();
+                $allowed = [];
 
                 foreach ($this->allowedUrls as $entry) {
                     $entry = preg_quote($entry, '#');

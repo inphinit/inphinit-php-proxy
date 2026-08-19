@@ -2,7 +2,7 @@
 /**
  * Inphinit Proxy
  *
- * Copyright (c) 2025 Guilherme Nascimento
+ * Copyright (c) 2026 Guilherme Nascimento
  *
  * Released under the MIT license
  */
@@ -14,7 +14,6 @@ use Inphinit\Proxy\Proxy;
 class StreamDriver
 {
     private $context;
-    private $lastUpdate = 0;
     private $proxy;
     private $timeout = 30;
 
@@ -56,11 +55,7 @@ class StreamDriver
      */
     public function exec($url, &$httpStatus, &$contentType, &$errorCode, &$errorMessage)
     {
-        $update = $this->proxy->getOptionsUpdate();
-
-        if ($this->context === null || $this->lastUpdate !== $update) {
-            $this->lastUpdate = $update;
-
+        if ($this->proxy->pollOptions()) {
             $this->timeout = $this->proxy->getTimeout();
 
             $options = [

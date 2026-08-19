@@ -2,7 +2,7 @@
 /**
  * Inphinit Proxy
  *
- * Copyright (c) 2025 Guilherme Nascimento
+ * Copyright (c) 2026 Guilherme Nascimento
  *
  * Released under the MIT license
  */
