@@ -61,11 +61,11 @@ class CurlDriver
             $timeout = $this->proxy->getTimeout();
 
             $options = [
-                CURLOPT_TIMEOUT => $timeout,
                 CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HEADER => false,
-                CURLOPT_MAXREDIRS => $this->proxy->getMaxRedirs(),
-                CURLOPT_RETURNTRANSFER => false
+                CURLOPT_HEADER         => false,
+                CURLOPT_MAXREDIRS      => $this->proxy->getMaxRedirs(),
+                CURLOPT_RETURNTRANSFER => false,
+                CURLOPT_TIMEOUT        => $timeout,
             ];
 
             $extra = $this->proxy->getOptions(get_class($this));
@@ -93,16 +93,20 @@ class CurlDriver
             $this->maxDownloadSize = $this->proxy->getMaxDownloadSize();
 
             if (PHP_VERSION_ID < 50500) {
-                $progress_callback = function ($downloadSize, $downloaded, $uploadSize, $uploaded) {
-                    return $this->abort($downloaded);
+                $progress_callback = function ($bytesToDownload, $bytesDownloaded, $bytesToUpload, $bytesUploaded) {
+                    return $this->abort($bytesDownloaded) ? 0 : 1;
                 };
             } else {
-                $progress_callback = function ($resource, $downloadSize, $downloaded, $uploadSize, $uploaded) {
-                    return $this->abort($downloaded);
+                $progress_callback = function ($curlHandle, $bytesToDownload, $bytesDownloaded, $bytesToUpload, $bytesUploaded) {
+                    return $this->abort($bytesDownloaded) ? 0 : 1;
                 };
             }
 
-            curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, $progress_callback);
+            if (defined('CURLOPT_XFERINFOFUNCTION')) {
+                curl_setopt($ch, CURLOPT_XFERINFOFUNCTION, $progress_callback);
+            } else {
+                curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, $progress_callback);
+            }
 
             $temp = $this->proxy->getTemporary();
 
@@ -143,20 +147,20 @@ class CurlDriver
     {
         if ($downloaded > $this->maxDownloadSize) {
             $this->errorMessage = 'Download aborted because file size exceeded the maximum allowed';
-            return 1;
+            return false;
         }
 
         $http_code = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
 
         if (($http_code !== 0 && $http_code < 200) || $http_code >= 400) {
             $this->httpStatus = $http_code;
-            return 1;
+            return false;
         }
 
         $content_type = curl_getinfo($this->handle, CURLINFO_CONTENT_TYPE);
 
         if ($http_code < 300 && $content_type) {
-            return $this->proxy->isAllowedType($content_type, $this->errorMessage) ? 0 : 1;
+            return $this->proxy->isAllowedType($content_type, $this->errorMessage);
         }
 
         return 0;

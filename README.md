@@ -12,7 +12,7 @@ Until version 1.x, this project was mainly a proxy solution for _html2canvas_. S
 
 Although developed as part of the _Inphinit framework_, this library is fully standalone and compatible with any framework — or even plain PHP.
 
-While fully standalone, this library was originally part of the Inphinit framework. If you’re starting a new project, consider adopting the framework itself. For more details: https://inphinit.github.io
+While fully standalone, this library was originally part of the Inphinit framework. If you’re starting a new project, consider adopting the framework itself. For more details: https://inphinit.github.io/
 
 ## Proxies for other scripting languages
 
