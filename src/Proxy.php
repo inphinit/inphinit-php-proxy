@@ -546,8 +546,11 @@ class Proxy
 
         if ($binary) {
             $content_type .= ';base64';
-        } elseif ($extra) {
-            $content_type .= ';' . $extra;
+        } elseif (
+            $extra !== null &&
+            preg_match('#(^|\s|;)charset=([\w\-]+?)$#', $extra, $matches) === 1
+        ) {
+            $content_type .= ';charset=' . $matches[2];
         }
 
         echo $callback, '("';
