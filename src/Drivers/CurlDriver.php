@@ -55,15 +55,26 @@ class CurlDriver
         if ($this->proxy->pollOptions()) {
             $this->close();
 
-            $this->handle = curl_init();
-
-            $ch = $this->handle;
             $timeout = $this->proxy->getTimeout();
+            $ch = curl_init();
+
+            if ($ch === false) {
+                $errorCode = 0;
+                $errorMessage = 'Could not initialize a cURL';
+
+                // Force refresh pollOptions
+                $this->proxy->setTimeout($timeout);
+
+                return false;
+            }
+
+            $this->handle = $ch;
 
             $options = [
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_HEADER         => false,
                 CURLOPT_MAXREDIRS      => $this->proxy->getMaxRedirs(),
+                CURLOPT_NOPROGRESS     => false,
                 CURLOPT_RETURNTRANSFER => false,
                 CURLOPT_TIMEOUT        => $timeout,
             ];
@@ -88,17 +99,15 @@ class CurlDriver
                 curl_setopt($ch, CURLOPT_USERAGENT, $user_agent);
             }
 
-            curl_setopt($ch, CURLOPT_NOPROGRESS, false);
-
             $this->maxDownloadSize = $this->proxy->getMaxDownloadSize();
 
             if (PHP_VERSION_ID < 50500) {
                 $progress_callback = function ($bytesToDownload, $bytesDownloaded, $bytesToUpload, $bytesUploaded) {
-                    return $this->abort($bytesDownloaded) ? 0 : 1;
+                    return $this->abort($bytesDownloaded);
                 };
             } else {
                 $progress_callback = function ($curlHandle, $bytesToDownload, $bytesDownloaded, $bytesToUpload, $bytesUploaded) {
-                    return $this->abort($bytesDownloaded) ? 0 : 1;
+                    return $this->abort($bytesDownloaded);
                 };
             }
 
@@ -108,18 +117,25 @@ class CurlDriver
                 curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, $progress_callback);
             }
 
+            if (defined('CURLOPT_PROTOCOLS_STR')) {
+                curl_setopt($ch, CURLOPT_PROTOCOLS_STR, 'http,https');
+                curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS_STR, 'http,https');
+            } else {
+                curl_setopt($ch, CURLOPT_PROTOCOLS, CURLPROTO_HTTP|CURLPROTO_HTTPS);
+                curl_setopt($ch, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP|CURLPROTO_HTTPS);
+            }
+
             $temp = $this->proxy->getTemporary();
 
-            if (defined('CURLOPT_WRITEFUNCTION')) {
-                curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($resource, $data) use ($temp) {
-                    return fwrite($temp, $data);
-                });
-            } else {
-                curl_setopt($ch, CURLOPT_FILE, $temp);
-            }
+            curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($resource, $data) use ($temp) {
+                return fwrite($temp, $data);
+            });
         } else {
             $ch = $this->handle;
         }
+
+        $this->errorMessage = null;
+        $this->httpStatus = null;
 
         curl_setopt($ch, CURLOPT_URL, $url);
 
@@ -147,20 +163,20 @@ class CurlDriver
     {
         if ($downloaded > $this->maxDownloadSize) {
             $this->errorMessage = 'Download aborted because file size exceeded the maximum allowed';
-            return false;
+            return 1;
         }
 
         $http_code = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
 
         if (($http_code !== 0 && $http_code < 200) || $http_code >= 400) {
             $this->httpStatus = $http_code;
-            return false;
+            return 1;
         }
 
         $content_type = curl_getinfo($this->handle, CURLINFO_CONTENT_TYPE);
 
         if ($http_code < 300 && $content_type) {
-            return $this->proxy->isAllowedType($content_type, $this->errorMessage);
+            return $this->proxy->isAllowedType($content_type, $this->errorMessage) ? 0 : 1;
         }
 
         return 0;

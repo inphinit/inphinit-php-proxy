@@ -305,7 +305,7 @@ class Proxy
      */
     public function isAllowedType($type, &$errorMessage = null)
     {
-        if (!is_string($type) || $type === '') {
+        if (is_string($type) === false || $type === '') {
             $errorMessage = 'The response has no valid Content-Type';
 
             return false;
@@ -337,6 +337,8 @@ class Proxy
      */
     public function setTemporary($path)
     {
+        $this->pendingOptions = true;
+
         if ($this->temporary) {
             $this->reset();
             fclose($this->temporary);
@@ -385,6 +387,10 @@ class Proxy
     {
         if ($this->isHttpUrl($url, $message) === false) {
             $this->raise($message);
+        }
+
+        if (count($this->allowedUrls) === 0) {
+            $this->raise('The list of allowed URLs has not been defined');
         }
 
         if ($this->checkAllowedUrl($url) === false) {
@@ -534,6 +540,8 @@ class Proxy
             list($content_type, $extra) = $extract;
         }
 
+        $content_type = trim($content_type);
+
         $binary = $this->allowedTypes[$content_type];
 
         if ($binary) {
@@ -566,8 +574,10 @@ class Proxy
     /**
      * If last download was successful, contents will be returned
      *
-     * @param int $length Optional. The maximum bytes to read. If it is not defined or is -1, it will read the entire remaining buffer.
-     * @param int $offset Optional. Seek to the specified offset before reading. If this number is negative, no seeking will occur and reading will start from the current position.
+     * @param int $length   Optional. The maximum bytes to read. If it is not defined or is -1,
+     *                      it will read the entire remaining buffer.
+     * @param int $offset   Optional. Seek to the specified offset before reading. If this number is negative,
+     *                      no seeking will occur and reading will start from the current position.
      * @return string|false
      */
     public function getContents($length = -1, $offset = -1)
@@ -646,36 +656,36 @@ class Proxy
     private function isHttpUrl($url, &$message)
     {
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
-            $message = "Invalid URL: {$url}";
+            $message = 'Invalid URL: ' . $url;
             return false;
         }
 
-        if (in_array(parse_url($url, PHP_URL_SCHEME), array('http', 'https')) == false) {
-            $message = "The following URL is not http/https: {$url}";
-            return false;
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+
+        if (in_array($scheme, array('http', 'https'), true)) {
+            return true;
         }
 
-        return true;
+        $message = 'URL is not http/https: ' . $url;
+        return false;
     }
 
     private function checkAllowedUrl($url)
     {
-        if ($this->allowedUrls) {
-            if ($this->allowedUrlsRegEx === null) {
-                $allowed = [];
+        if ($this->allowedUrlsRegEx === null) {
+            $allowed = [];
 
-                foreach ($this->allowedUrls as $entry) {
-                    $entry = preg_quote($entry, '#');
-                    $entry = str_replace('\\*', '[^/]+', $entry);
-                    $allowed[] = $entry;
-                }
-
-                $this->allowedUrlsRegEx = '#^(' . implode('|', $allowed) . ')$#';
+            foreach ($this->allowedUrls as $entry) {
+                $entry = preg_quote($entry, '#');
+                $entry = str_replace('\\*', '[^/]+', $entry);
+                $allowed[] = $entry;
             }
 
-            if (preg_match($this->allowedUrlsRegEx, $url) !== 1) {
-                return false;
-            }
+            $this->allowedUrlsRegEx = '#^(' . implode('|', $allowed) . ')#';
+        }
+
+        if (preg_match($this->allowedUrlsRegEx, $url) !== 1) {
+            return false;
         }
 
         return true;
@@ -683,11 +693,13 @@ class Proxy
 
     private function raise($message, $code = 0)
     {
+        $message = htmlentities($message, ENT_QUOTES|ENT_SUBSTITUTE|ENT_XHTML);
+
         if ($this->coreException) {
             throw new \Inphinit\Exception($message, $code, 3);
-        } else {
-            throw new \Exception($message, $code);
         }
+
+        throw new \Exception($message, $code);
     }
 
     public function __destruct()

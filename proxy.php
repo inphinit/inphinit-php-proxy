@@ -10,7 +10,7 @@ if (empty($_GET['url'])) {
 
 $url = $_GET['url'];
 
-//Usage without autoload
+// Usage without autoload
 require 'src/Proxy.php';
 require 'src/Drivers/CurlDriver.php';
 require 'src/Drivers/StreamDriver.php';
@@ -54,12 +54,10 @@ if (isset($_SERVER['HTTP_USER_AGENT'])) {
 // $proxy->setTemporary(__DIR__ . '/cache');
 
 // Set allowed URLs
-/*
 $proxy->setAllowedUrls([
     'https://*.domain.io/',
     'https://cdn.foobar.io/'
 ]);
-*/
 
 // Set allowed Content-Types
 // $proxy->addAllowedType('image/ico', true);

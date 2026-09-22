@@ -1,8 +1,9 @@
 {
     "name": "inphinit/proxy",
-    "description": "Lib for create web proxy with CORS",
+    "description": "Library for creating a web proxy with CORS",
     "keywords": [ "proxy", "cors", "html2canvas" ],
     "license": "MIT",
+    "type": "library",
     "authors": [
         {
             "name": "Guilherme Nascimento",
@@ -16,5 +17,9 @@
         "psr-4": {
             "Inphinit\\Proxy\\": "src/"
         }
+    },
+    "suggest": {
+        "ext-curl": "Needed to support CurlDriver class",
+        "ext-openssl": "Needed to support HTTPS urls"
     }
 }
