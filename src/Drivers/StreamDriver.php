@@ -40,7 +40,7 @@ class StreamDriver
      */
     public function available()
     {
-        return function_exists('ini_get') === false || ini_get('allow_url_fopen') == 1;
+        return function_exists('ini_get') === false || ini_get('allow_url_fopen') === '1';
     }
 
     /**
