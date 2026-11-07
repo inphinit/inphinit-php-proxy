@@ -56,7 +56,8 @@ if (isset($_SERVER['HTTP_USER_AGENT'])) {
 // Set allowed URLs
 $proxy->setAllowedUrls([
     'https://*.domain.io/',
-    'https://cdn.foobar.io/'
+    'https://cdn.foobar.io/',
+    'https://*.githubusercontent.com/'
 ]);
 
 // Set allowed Content-Types
@@ -92,8 +93,9 @@ try {
         // Display callback with data URI content
         $proxy->jsonp($_GET['callback']);
     }
-} catch (Exception $ee) {
-    $code = $ee->getCode();
-    $message = $ee->getMessage();
+} catch (Exception $ex) {
+    http_response_code(500);
+    $code = $ex->getCode();
+    $message = $ex->getMessage();
     echo "Error: ({$code}) {$message}";
 }

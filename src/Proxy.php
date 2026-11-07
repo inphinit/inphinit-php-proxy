@@ -18,6 +18,7 @@ class Proxy
     private $userAgent;
 
     private $temporary;
+    private $temporaryPath;
     private $options = [];
     private $pendingOptions = true;
     private $driver;
@@ -126,7 +127,7 @@ class Proxy
     }
 
     /**
-     * Set the driver connection timeout in seconds
+     * Set the driver request timeout in seconds
      *
      * @param int $value
      * @return void
@@ -183,7 +184,7 @@ class Proxy
     }
 
     /**
-     * Set the Access-Control-Allow-Origin header (used by `::response()` and `::json()` methods)
+     * Set the Access-Control-Allow-Origin header (used by `::response()` and `::jsonp()` methods)
      *
      * @param string $origin
      * @throws \Inphinit\Exception
@@ -200,7 +201,7 @@ class Proxy
     }
 
     /**
-     * Set the list of allowed headers (used by `::response()` and `::json()` methods)
+     * Set the list of allowed headers (used by `::response()` and `::jsonp()` methods)
      *
      * @param array $headers
      * @return void
@@ -342,6 +343,10 @@ class Proxy
         if ($this->temporary) {
             $this->reset();
             fclose($this->temporary);
+
+            if (strpos($path, 'php://') !== 0) {
+                @unlink($this->temporaryPath);
+            }
         }
 
         if (strpos($path, 'php://') !== 0) {
@@ -363,6 +368,7 @@ class Proxy
         }
 
         $this->temporary = $temp;
+        $this->temporaryPath = $path;
     }
 
     /**
@@ -378,7 +384,7 @@ class Proxy
     /**
      * Perform the download
      *
-     * @param string $url          Set URL for download
+     * @param string $url Set URL for download
      * @throws \Inphinit\Exception
      * @throws \Exception
      * @return void
@@ -400,11 +406,18 @@ class Proxy
         if ($this->temporary === null) {
             $temporary = tmpfile();
 
-            if ($temporary) {
-                $this->temporary = $temporary;
-            } else {
+            if ($temporary === false) {
                 $this->raise('Failed to open temporary file');
             }
+
+            $info = stream_get_meta_data($temporary);
+
+            if (isset($info['uri'][0]) === false) {
+                $this->raise('Failed to identify the path to the temporary file');
+            }
+
+            $this->temporary = $temporary;
+            $this->temporaryPath = $info['uri'][0];
         }
 
         $this->errorCode = 0;
@@ -474,7 +487,7 @@ class Proxy
     }
 
     /**
-     * Set the cache duration (in seconds) or disable cache for Proxy::respose() or Proxy::jsonp()
+     * Set the cache duration (in seconds) or disable cache for Proxy::response() or Proxy::jsonp()
      *
      * @param int $seconds Set seconds
      * @return void
@@ -513,9 +526,9 @@ class Proxy
     }
 
     /**
-     * Output JSONP callback with URL or data URI content
+     * Output JSONP callback with data URI content
      *
-     * @param string $callback     JavaScript callback function name
+     * @param string $callback JavaScript callback function name
      * @throws \Inphinit\Exception
      * @throws \Exception
      * @return void
@@ -583,7 +596,7 @@ class Proxy
      *                      no seeking will occur and reading will start from the current position.
      * @return string|false
      */
-    public function getContents($length = -1, $offset = -1)
+    public function getContents($length = -1, $offset = 0)
     {
         return $this->temporary ? stream_get_contents($this->temporary, $length, $offset) : false;
     }
@@ -626,6 +639,10 @@ class Proxy
 
     private function sendHeaders($contentType)
     {
+        if (headers_sent()) {
+            $this->raise('Headers already sent');
+        }
+
         header('Access-Control-Allow-Credentials: true');
 
         if ($this->controlAllowOrigin) {
@@ -653,7 +670,11 @@ class Proxy
 
         header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $time) . ' GMT');
         header('Expires: ' . $date . ' GMT');
+
+        header('Content-Disposition: inline');
+        header('Content-Security-Policy: default-src \'none\'; style-src \'unsafe-inline\'; sandbox');
         header('Content-type: ' . $contentType);
+        header('X-Content-Type-Options: nosniff');
     }
 
     private function isHttpUrl($url, &$message)
@@ -680,14 +701,22 @@ class Proxy
 
             foreach ($this->allowedUrls as $entry) {
                 $entry = preg_quote($entry, '#');
-                $entry = str_replace('\\*', '[^/]+', $entry);
+                $entry = str_replace('\\*', '[^/?\#.@:%\x00-\x20\x5c\x7f-\xff]+', $entry);
                 $allowed[] = $entry;
             }
 
-            $this->allowedUrlsRegEx = '#^(' . implode('|', $allowed) . ')#';
+            $this->allowedUrlsRegEx = $allowed ? '#^(' . implode('|', $allowed) . ')#' : '';
         }
 
-        if (preg_match($this->allowedUrlsRegEx, $url) !== 1) {
+        $parsed = parse_url($url);
+
+        if ($parsed === false || isset($parsed['user']) || isset($parsed['pass'])) {
+            return false;
+        }
+
+        $re = $this->allowedUrlsRegEx;
+
+        if ($re !== '' && preg_match($re, $url) !== 1) {
             return false;
         }
 

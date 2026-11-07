@@ -111,6 +111,10 @@ class CurlDriver
                 };
             }
 
+            if (defined('CURLOPT_MAXFILESIZE')) {
+                curl_setopt($ch, CURLOPT_MAXFILESIZE, $this->maxDownloadSize);
+            }
+
             if (defined('CURLOPT_XFERINFOFUNCTION')) {
                 curl_setopt($ch, CURLOPT_XFERINFOFUNCTION, $progress_callback);
             } else {
